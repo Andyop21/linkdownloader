@@ -39,8 +39,12 @@ larger is filed in `docs/work/bugs/` and listed in the handoff for the owner to 
 5. **Size and start-up.** Record the release APK size and the time from tap to first frame on a
    cold start (the first launch unpacks Python; say how long that takes, and make sure the screen
    shows immediately and the first download says "Getting ready…" while it finishes).
-6. **Public-ready docs.**
-   - `README.md`: what it is, one screenshot (light) without personal content, how to install the
+6. **Public-ready docs.** *Done ahead of this session on 2026-11-16, at the owner's request: the
+   README was rewritten with screenshots in both themes, the changelog moved under `[1.0.0]`, the
+   docs were checked against the code, and `LICENSE` (GPL-3.0-or-later) was already in place. Only
+   recheck what the release work below changes (the changelog date, the README's install section
+   once a GitHub release exists).*
+   - `README.md`: what it is, screenshots without personal content, how to install the
      APK, how to build, supported sites, responsible-use note, credits (yt-dlp,
      youtubedl-android, Lato).
    - `CHANGELOG.md`: move *Unreleased* into `## [1.0.0] - <date>`.

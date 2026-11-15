@@ -145,7 +145,7 @@ Release builds are `arm64-v8a` only and need a real phone (or an ARM emulator).
 
 1. On the phone, enable Developer options and USB debugging.
 2. Connect it, accept the debugging prompt, and check `adb devices` lists it.
-3. `./gradlew installDebug`, then open linkdownloader.
+3. `./gradlew installDebug`, then open Link Downloader.
 
 ## Release builds
 

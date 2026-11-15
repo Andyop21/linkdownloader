@@ -7,9 +7,8 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 // The palette from docs/architecture.md § Look and feel: a cool-gray neutral ramp, one blue for
-// actions and soft tints for status, after the Enamel design tokens (DEC-008). Every
-// text/background pair the screen draws is checked against WCAG AA by ThemeContrastTest; change
-// the list there too.
+// actions and soft tints for status (DEC-008). Every text/background pair the screen draws is
+// checked against WCAG AA by ThemeContrastTest; change the list there too.
 
 /** The app's semantic colours. Screens take every colour from here by name. */
 @Immutable

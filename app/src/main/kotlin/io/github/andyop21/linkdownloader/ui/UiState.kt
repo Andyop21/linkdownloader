@@ -52,7 +52,7 @@ sealed interface Status {
      */
     data class AlreadySaved(val videos: List<DownloadResult.Video>, val saved: Int) : Status
 
-    /** The download failed for [reason]; the card shows the plain message. */
+    /** The download failed for [reason]; the status shows the plain message. */
     data class Failed(val reason: FailureReason) : Status
 }
 

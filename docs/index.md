@@ -17,7 +17,7 @@ Short on purpose. Read this page, then only what your task needs.
 | Task | Read |
 |---|---|
 | Change the screen, its text or its look | product.md, architecture.md § *Code layout* |
-| Change link handling or the download | product.md § *Behaviour*, architecture.md § *Download flow* |
+| Change link handling or the download | product.md § *Behaviour*, architecture.md § *Download pipeline* |
 | Add or upgrade a dependency | architecture.md § *Dependencies*, then record a decision |
 | Fix a bug | its file in `work/bugs/`, then the code it names |
 | Run a prompt | `../prompts/session-protocol.md`, then the prompt |

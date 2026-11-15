@@ -5,6 +5,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-16
+
+The first release.
+
 ### Added
 
 - The screen: copy a video link, tap **Paste** (or type it and press Go), and the video is saved to
@@ -25,7 +29,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The link field has a clear button, and empties itself when a video is saved or a download is
   cancelled, ready for the next link.
 - **Try again** after a failure that may pass (offline, or an unknown error).
-- Pasting the link that was just saved does not download it twice: the card says it is already
+- Pasting the link that was just saved does not download it twice: the status says it is already
   saved, with **Open** and **Download again**.
 
 ### Fixed

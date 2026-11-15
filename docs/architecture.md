@@ -1,7 +1,6 @@
 # Architecture
 
-The plan the code follows. Until a part is built, this page describes its intended shape; once it
-exists, the code and this page must agree.
+How the app is built. The code and this page must agree; a difference is a bug in one of them.
 
 ## Stack
 
@@ -37,7 +36,9 @@ Why: [DEC-001](work/decisions/DEC-001-kotlin-compose-ytdlp.md) (stack) and
   build stops at `checkReleaseSigning`), shrunk with R8 and resource shrinking. AndroidX,
   WorkManager, Compose and kotlinx.serialization bring their own R8 rules; `app/proguard-rules.pro`
   adds youtubedl-android's (the library ships none): the library kept whole, Jackson's annotations
-  and optional handlers, Commons Compress's ZIP extra fields, and the app's serializers. Versions:
+  and optional handlers, Commons Compress's ZIP extra fields, and the app's serializers; it also
+  keeps the class names in `download` and the line numbers, so release logs and crash traces stay
+  readable. Versions:
   `versionCode = major*10000 + minor*100 + patch` ([development.md](development.md) § *Versions*).
 
 ## Code layout
@@ -85,6 +86,7 @@ link
                       -o <job>/media/%(format_id)s.%(ext)s → one or two files in the job folder
  → Assemble    Pair             → MediaAssembler.join: video + audio into one MP4
    and save    Single MPEG-TS   → MediaAssembler.remux into MP4
+               or unrecognised
                Single MP4/WebM  → copied as is
                DownloadsSaver: a pending MediaStore Downloads entry; the MP4 is written straight
                into its file descriptor, then IS_PENDING is cleared → content Uri
@@ -137,9 +139,10 @@ link
 - **Save.** The entry is created in `Download/` with `IS_PENDING = 1`, the name from `FileNamer`
   and MIME type `video/mp4` (or `video/webm`), so no other app sees a half-written file. MediaStore
   may add ` (1)` to a name that is taken; the name it chose is the one returned.
-- **File name.** The title with `/ \ : * ? " < > |` and control characters removed, whitespace
-  collapsed, emoji kept, cut to 100 code points and 200 UTF-8 bytes; `<site>-<video id>` when the
-  title leaves nothing, and `video` when there is not even that.
+- **File name.** The title with `/ \ : * ? " < > |` and control characters replaced by spaces,
+  whitespace collapsed, leading and trailing spaces and dots trimmed, emoji kept, cut to 100 code
+  points and 200 UTF-8 bytes; `<site>-<video id>` when the title leaves nothing, and `video` when
+  there is not even that.
 - **Progress.** youtubedl-android's callback restarts at 0 % for each file of a pair, and each file
   starts with a `[download] Destination:` line. The callback also repeats its last percentage on
   lines that carry none, so `ProgressTracker` reads the percentage from the line itself and ignores
@@ -284,8 +287,7 @@ WorkManager's `SystemForegroundService` is merged into the manifest with
 
 ## Look and feel
 
-Implemented in `ui.theme`; tokens, not inline values. The values follow the Enamel design tokens,
-without its brand colour or logo: [DEC-008](work/decisions/DEC-008-enamel-derived-look.md).
+Implemented in `ui.theme`; tokens, not inline values. Why: [DEC-008](work/decisions/DEC-008-professional-look.md).
 Screens read colours by name from `AppTheme.colors` (`AppColors`); Material 3 is given the same
 colours (`toMaterial()`) for the few Material parts that draw their own (sheets, snackbar).
 
@@ -308,6 +310,9 @@ colours (`toMaterial()`) for the few Material parts that draw their own (sheets,
 | warning | `#956300` | `#D5A12A` | The no-link orb's glow, the About sheet's warning dot |
 | danger | `#CF1F14` | `#F0655A` | The failure orb's glow |
 | overlay / overlayInk / overlayAction | `#1D2126` / `#FFFFFF` / `#8FB8FF` | `#262A30` / `#FFFFFF` / `#8FB8FF` | The snackbar |
+| onPrimary | `#FFFFFF` | `#FFFFFF` | Labels on filled buttons, the selection tick |
+| successSoft / warningSoft / dangerSoft | `#E3F5EB` / `#FBF1D6` / `#FEE4E2` | `#10291D` / `#2B2312` / `#33191A` | Material's tertiary and error containers |
+| scrim | `#080A0C` at 55 % | `#050709` at 65 % | Behind both sheets |
 
 `track` (ink at 8 %, the progress ring's track) and `press` (ink at 6 %, an outlined button held down)
 derive from ink. Every text/background pair the screen draws passes WCAG AA (4.5:1 for text, 3:1
@@ -324,7 +329,9 @@ WCAG. Dynamic colour is off: the app keeps its own palette.
   as `res/font/lato_regular.ttf`, `lato_bold.ttf` and `lato_black.ttf`; licence in
   `assets/licenses/OFL-Lato.txt`. Named runs in `AppType`: bar title 17 sp bold; hero title 22 sp
   bold, tracking -0.015 em; lead 15 sp; percentage 26 sp black with tabular figures (its % sign
-  15 sp); heading 19 sp bold; body 14 sp at 1.45; sub 13 sp; button 16 sp bold; field 16 sp. Line
+  15 sp); heading 19 sp bold; body 14 sp at 1.45; sub 13 sp; button 16 sp bold (**Paste link**);
+  small button 14 sp bold (the status and sheet buttons); field 16 sp; figure 13 sp bold and value
+  14 sp bold, both with tabular figures (lengths, versions). Line
   heights split their leading evenly above and below, as CSS does. Material's type scale is set in
   Lato too.
 - **Spacing** (`ui/theme/Spacing.kt`, `Space`): 4, 8, 12, 16, 24, 32 and 48 dp, and a 56 dp title
@@ -332,7 +339,8 @@ WCAG. Dynamic colour is off: the app keeps its own palette.
   above the buttons; 12 dp between the field and **Paste link**; at least 24 dp of free space
   above and below the hero.
 - **Shapes** (`ui/theme/Shape.kt`): one corner scale, every corner a circular arc: `BadgeShape` 6,
-  `TileShape` 10 (thumbnails), `FieldShape` 12, `CardShape` 14 (grouped list, snackbar), `SheetShape` 18 (top corners); `CapsuleShape` for every button and mark. A shape
+  Material's `small` 8, `TileShape` 10 (thumbnails), `FieldShape` 12, `CardShape` 14 (grouped list,
+  snackbar), `SheetShape` 18 (top corners); `CapsuleShape` for every button and mark. A shape
   nested inside another takes the outer radius less the inset (`Corners.inner`).
 - **Motion** (`ui/theme/Motion.kt`): curves `EaseOut` (0.16, 1, 0.3, 1) for arrivals, `EaseIn`
   (0.4, 0, 1, 1) for departures, `Standard` (0.4, 0, 0.2, 1) for colour and size changes, and
@@ -377,7 +385,8 @@ WCAG. Dynamic colour is off: the app keeps its own palette.
 
 Keep them few: AndroidX core, activity-compose, lifecycle, Compose BOM (Material 3),
 WorkManager (`work-runtime`), kotlinx.serialization (with its Kotlin compiler plugin),
-kotlinx.coroutines, youtubedl-android `library`, and test libraries (JUnit, kotlinx-coroutines-test). Every one is
+kotlinx.coroutines, youtubedl-android `library`, Compose UI tooling for previews, and test
+libraries (JUnit, kotlinx-coroutines-test, AndroidX Test runner and ext-junit). Every one is
 pinned in `gradle/libs.versions.toml`. Adding a library or bumping a major version is recorded as a
 decision in `work/decisions/`.
 

@@ -5,7 +5,7 @@ A task is finished only when every item below holds.
 1. **Git.** Every commit is on `worktree`, uses `type(scope): short imperative summary`, carries no
    AI attribution, and is published with `bash scripts/publish.sh`. The tree is clean.
 2. **Builds and checks.** `./gradlew assembleDebug testDebugUnitTest lintDebug` passes, with no new
-   lint warnings. (Before the app is scaffolded, this item does not apply.)
+   lint warnings.
 3. **Tests.** New or changed logic in `link` or `MainViewModel` has unit tests. A bug fix carries the
    test that failed before it, where the bug can be tested on the JVM.
 4. **Seen working.** A change to the screen or the download was tried on a device or emulator, and

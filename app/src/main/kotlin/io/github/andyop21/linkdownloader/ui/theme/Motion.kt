@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * The app's motion: a few curves and durations, after the Enamel design tokens (DEC-008).
+ * The app's motion: a few curves and durations (DEC-008).
  * Arrivals decelerate ([EaseOut]), departures accelerate ([EaseIn]), colours and sizes change on
  * [Standard], and only a small confirmation (the saved check) overshoots ([Spring]).
  */

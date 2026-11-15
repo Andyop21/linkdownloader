@@ -36,12 +36,12 @@ No menus, no settings screen, no history list, no second screen.
 | B3 | A link is typed or pasted into the bar with the keyboard, and the keyboard's action key is pressed | Same as B1, using the bar's text (the bar then holds just the link); same as B2 if it holds no link, with a message that the bar holds no link. |
 | B4 | A download is running | The status shows the video's title once known, then the progress, which never goes backwards. When several videos of one post download, it also says which one of how many ("2 of 3"), and the progress covers them all. **Paste** and the keyboard action are disabled. One download at a time. |
 | B5 | **Cancel** is tapped on the screen or in the notification | The download stops, its partial files are deleted, the bar is emptied and the status returns to idle. Videos of the same post that were already saved stay saved. |
-| B6 | The download finishes | The video is in `Downloads/`, named after its title. The bar empties itself, ready for the next link. The status says it was saved, with the video's title, the file name and an **Open** action that plays it. For several videos it says how many were saved (and how many could not be, if any), and **Open** plays the first. The phone gives a light haptic tick. |
+| B6 | The download finishes | The video is in `Downloads/`, named after its title. The bar empties itself, ready for the next link. The status says it was saved, with the video's title (or its file name when it has none) and an **Open** action that plays it. For several videos it says how many were saved (and how many could not be, if any), and **Open** plays the first. The phone gives a light haptic tick. |
 | B7 | The download fails | The status gives a short title and a plain reason (table below). No technical error text, ever. The link stays in the bar. When the phone was offline or the cause is unknown, **Try again** starts the same link again. |
 | B8 | The app is left while a download runs | The download continues, with a notification showing progress and a Cancel action. When it ends, the notification says saved (tap to open) or failed. When the link turns out to be a post with several videos while the app is not on screen, a notification asks to choose which videos to save and opens the app on the choice. |
 | B9 | The app is opened again later | It starts idle. A download still running is shown as running. |
 | B10 | The header is long-pressed | A small sheet shows the app version and the yt-dlp version, with an **Update yt-dlp** button. This is the only "settings" surface and it stays hidden. |
-| B11 | The link leads to a post with several videos (an X post with several clips, an Instagram carousel) | After *preparing*, a sheet shows a thumbnail of each video, with its length, all of them selected. Tapping a thumbnail selects or clears it, so one, some or all can be chosen; **Select all** selects every one. **Download** (with the count, disabled when none is selected) saves the chosen videos one after another, each as its own file. Closing the sheet downloads nothing and returns to idle. A post with one video skips the sheet. Pictures in a post are not offered. |
+| B11 | The link leads to a post with several videos (an X post with several clips, an Instagram carousel) | After *preparing*, a sheet shows a thumbnail of each video, with its length, all of them selected. Tapping a thumbnail selects or clears it, so one, some or all can be chosen; **Select all** / **Select none** selects or clears every one. **Download** (with the count; "Select a video" and disabled when none is selected) saves the chosen videos one after another, each as its own file. Closing the sheet downloads nothing and returns to idle. A post with one video skips the sheet. Pictures in a post are not offered. |
 | B12 | **Paste** or the keyboard action finds the link this screen saved last | Nothing starts, so no duplicate is made. The link fills the bar and the status says it was already saved, with **Open** and **Download again** (which saves a second copy on purpose). Only the last saved link counts, and only until the app is closed. |
 | B13 | The bar holds text and no download or choice is in progress | A clear button sits at the bar's end: it empties the bar and dismisses the last message. Editing the bar also dismisses a message about an earlier link. |
 
@@ -85,8 +85,8 @@ Calm, clean and precise, like a well-made tool, with one living element at its c
 - Material 3 components with the app's own colours and shapes, not the stock look.
 
 The exact palette, type, shapes and motion are set in `ui/theme` and described in
-[architecture.md](architecture.md) § *Look and feel*. They follow the Enamel design tokens
-([DEC-008](work/decisions/DEC-008-enamel-derived-look.md)), without its brand colour or logo.
+[architecture.md](architecture.md) § *Look and feel*; why they were chosen is in
+[DEC-008](work/decisions/DEC-008-professional-look.md).
 
 ## Not in scope
 

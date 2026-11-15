@@ -1,33 +1,32 @@
 ---
 id: DEC-008
-title: "A professional look from the Enamel design tokens: no mascot, Lato, cool grays and one blue"
+title: "A professional look: no mascot, Lato, cool grays and one blue"
 date: 2026-11-16
 status: accepted
 ---
 
-# DEC-008 — A professional look from the Enamel design tokens
+# DEC-008 — A professional look
 
 ## Context
 
 The P06 look (pastel lavender, Nunito, a mascot that cheered and worried) read as a children's
-app. The owner asked for a cleaner, more professional and more precise look, built from the design
-tokens of their other project, Enamel, without copying its logo or branding. The owner also asked
-that the screen think for the user: no selecting text to start again.
+app. The owner asked for a cleaner, more professional and more precise look, with a small, fixed
+set of design tokens behind it. The owner also asked that the screen think for the user: no
+selecting text to start again.
 
 ## Decision
 
-- **Tokens taken from Enamel:** the cool-gray neutral ramp and its semantic aliases (canvas,
-  surface, ink, muted, faint, border, control border), the console blue for actions with a deeper
-  fill in the dark theme so white labels pass, the success, warning and danger ramps with their
-  soft tints, the dark overlay for the snackbar, the corner scale with capsule buttons and the
-  concentric rule, the type roles (title, lead, heading, card title, eyebrow, body), and the motion
-  curves and durations (ease-out, ease-in, standard, spring; 120 to 640 ms), with its rise, tactile
-  press and live dot.
-- **Left out:** Enamel's brand colour, its logo and mark, and every name or wording of its own.
-  The app's accent is the neutral blue.
-- **Lato**, the face Enamel uses, from Google Fonts' OFL release, unmodified: three static files
-  (regular, bold, black), not Enamel's own converted subsets. About 2 MB together, small next to
-  the bundled Python and yt-dlp. The licence ships as `assets/licenses/OFL-Lato.txt`.
+- **A token set of its own:** a cool-gray neutral ramp and its semantic aliases (canvas, surface,
+  ink, muted, faint, border, control border), one neutral blue for actions with a deeper fill in
+  the dark theme so white labels pass, success, warning and danger ramps with their soft tints, a
+  dark overlay for the snackbar, a corner scale with capsule buttons and the concentric rule, a
+  small set of type roles (title, lead, heading, card title, eyebrow, body), and motion curves and
+  durations (ease-out, ease-in, standard, spring; 120 to 640 ms), with a rise, a tactile press and
+  a live dot.
+- **No brand colour and no logo** beyond the app's own icon. The accent is the neutral blue.
+- **Lato**, from Google Fonts' OFL release, unmodified: three static files (regular, bold, black).
+  About 2 MB together, small next to the bundled Python and yt-dlp. The licence ships as
+  `assets/licenses/OFL-Lato.txt`.
 - **No mascot; an orb instead.** A first pass put a status card at the top left under a large
   title, and the owner found it empty and soulless: there is not enough content to fill a
   left-aligned page. The screen is now centred around one living element, a disc in the status's
@@ -51,15 +50,14 @@ palette, mascot and single spring are replaced by this decision.
 
 - Colours are read by name from `AppTheme.colors`; Material's scheme is derived from them for the
   Material parts that remain (sheets, snackbar).
-- The README screenshot and every document that described the mascot changed with it.
+- The README screenshots and every document that described the mascot changed with it.
 - "Already saved" is remembered in memory only, for the last saved link: it guards against an
   accidental second tap, not against every duplicate.
 
 ## Alternatives considered
 
-- The system font (Roboto): no extra bytes and clean, but it would not carry Enamel's type, which
-  the owner asked for.
-- Copying Enamel's own subset Lato files: smaller, but they are modified fonts under Lato's reserved
+- The system font (Roboto): no extra bytes and clean, but less distinctive than the owner wanted.
+- A subset or converted copy of Lato: smaller, but a modified font may not keep Lato's reserved
   font name; the unmodified release is the safe choice for a public repository.
 - Keeping a smaller, quieter mascot: it would still set a playful tone the owner wanted gone.
 - A left-aligned page with a status card (the first pass): tidy, but bare on a tall phone.
