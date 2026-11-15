@@ -17,7 +17,8 @@ Finished: P01, P02.
 
 ### Stage 2 — The engine
 
-- [P03](not-finished/P03-download-pipeline.md): extract, pick, fetch, join and save, with progress, cancel and failure reasons. Entry: P02.
+Finished: P03.
+
 - [P04](not-finished/P04-background-downloads.md): WorkManager worker, notifications with Cancel, daily yt-dlp update. Entry: P03.
 
 ### Stage 3 — The screen
