@@ -36,6 +36,12 @@
     kotlinx.serialization.KSerializer serializer(...);
 }
 
+# --- The app ---------------------------------------------------------------------------------
+# The pipeline logs its plan, output and outcome by class name (for example "plan Pair"). Keep the
+# download package's class names so release logs read the same as debug ones; members may still
+# be shrunk and renamed.
+-keepnames class io.github.andyop21.linkdownloader.download.**
+
 # Keep source file and line numbers for readable crash traces, without the original file names.
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
