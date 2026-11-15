@@ -1,0 +1,128 @@
+{
+ "_note": "Trimmed sample of yt-dlp -J output, shaped after the formats seen in P02 (DEC-003). Neutral ID and title; no URLs.",
+ "id": "sampletiktok001",
+ "title": "Sample video",
+ "extractor": "TikTok",
+ "formats": [
+  {
+   "format_id": "download",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h264",
+   "acodec": "aac",
+   "width": null,
+   "height": null,
+   "tbr": null,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "audio",
+   "ext": "mp3",
+   "protocol": "https",
+   "vcodec": "none",
+   "acodec": "mp3",
+   "width": null,
+   "height": null,
+   "tbr": null,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "h264_540p_812345-0",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h264",
+   "acodec": "aac",
+   "width": 576,
+   "height": 1024,
+   "tbr": 812.0,
+   "filesize": 700000,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "h264_540p_812345-1",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h264",
+   "acodec": "aac",
+   "width": 576,
+   "height": 1024,
+   "tbr": 812.0,
+   "filesize": 700000,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "bytevc1_540p_412345-0",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h265",
+   "acodec": "aac",
+   "width": 576,
+   "height": 1024,
+   "tbr": 412.0,
+   "filesize": 360000,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "bytevc1_540p_412345-1",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h265",
+   "acodec": "aac",
+   "width": 576,
+   "height": 1024,
+   "tbr": 412.0,
+   "filesize": 360000,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "bytevc1_720p_552345-0",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h265",
+   "acodec": "aac",
+   "width": 720,
+   "height": 1280,
+   "tbr": 552.0,
+   "filesize": 480000,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "bytevc1_720p_552345-1",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h265",
+   "acodec": "aac",
+   "width": 720,
+   "height": 1280,
+   "tbr": 552.0,
+   "filesize": 480000,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "bytevc1_1080p_802345-0",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h265",
+   "acodec": "aac",
+   "width": 1080,
+   "height": 1920,
+   "tbr": 802.0,
+   "filesize": 700000,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "bytevc1_1080p_802345-1",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "h265",
+   "acodec": "aac",
+   "width": 1080,
+   "height": 1920,
+   "tbr": 802.0,
+   "filesize": 700000,
+   "filesize_approx": null
+  }
+ ]
+}

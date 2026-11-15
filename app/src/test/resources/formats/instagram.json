@@ -1,0 +1,153 @@
+{
+ "_note": "Trimmed sample of yt-dlp -J output, shaped after the formats seen in P02 (DEC-003). Neutral ID and title; no URLs.",
+ "id": "sampleig001",
+ "title": "Sample video",
+ "extractor": "Instagram",
+ "formats": [
+  {
+   "format_id": "1",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": null,
+   "acodec": null,
+   "width": null,
+   "height": null,
+   "tbr": null,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "2",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": null,
+   "acodec": null,
+   "width": null,
+   "height": null,
+   "tbr": null,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "3",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": null,
+   "acodec": null,
+   "width": null,
+   "height": null,
+   "tbr": null,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v0",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 720,
+   "height": 1280,
+   "tbr": 600,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v1",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 720,
+   "height": 1280,
+   "tbr": 900,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v2",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 1080,
+   "height": 1920,
+   "tbr": 1400,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v3",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 1080,
+   "height": 1920,
+   "tbr": 2100,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v4",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 1440,
+   "height": 2560,
+   "tbr": 3100,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v5",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 1440,
+   "height": 2560,
+   "tbr": 4200,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v6",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 720,
+   "height": 1280,
+   "tbr": 400,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-v7",
+   "ext": "mp4",
+   "protocol": "https",
+   "vcodec": "vp09.00.40.08",
+   "acodec": "none",
+   "width": 1080,
+   "height": 1920,
+   "tbr": 1700,
+   "filesize": null,
+   "filesize_approx": null
+  },
+  {
+   "format_id": "dash-a0",
+   "ext": "m4a",
+   "protocol": "https",
+   "vcodec": "none",
+   "acodec": "mp4a.40.2",
+   "width": null,
+   "height": null,
+   "tbr": 96.0,
+   "abr": 96.0,
+   "filesize": null,
+   "filesize_approx": null
+  }
+ ]
+}
