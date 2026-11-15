@@ -52,18 +52,28 @@ Dependencies point inward: `ui` uses `link` and `download`; `link` uses nothing.
 
 ## Download pipeline
 
-`VideoDownloader.download(link, jobId, onEvent)` is the one entry point; `DownloadWorker` calls it.
-It reports `Preparing`, `TitleKnown(title)`, `Progress(fraction)` and `Saving`, and returns
-`Saved(uri, fileName, title)` or `Failed(reason)`. Every step runs off the main thread, in a
-per-job folder, `cache/jobs/<jobId>`, that is deleted when the job ends, whatever the outcome.
+`VideoDownloader.download(link, jobId, selection, onEvent)` is the one entry point;
+`DownloadWorker` calls it. It reports `Preparing`, `TitleKnown(title, position, count)`,
+`Progress(fraction)` and `Saving`, and returns one of:
+
+- `Saved(videos, failed)`: each saved video's uri, file name and title, and how many chosen videos
+  could not be saved;
+- `ChooseVideos(title, choices)`: the link is a post with several videos and no `selection` was
+  passed; nothing was downloaded (below);
+- `Failed(reason)`.
+
+Every step runs off the main thread, in a per-job folder, `cache/jobs/<jobId>`, that is deleted
+when the job ends, whatever the outcome.
 
 ```text
 link
  → Check       no network                                  → Failed(NoInternet), nothing started
- → Extract     YtDlp: yt-dlp -J --no-playlist <link>       → info.json in the job folder → VideoJson
+ → Extract     YtDlp: yt-dlp -J --no-playlist --flat-playlist <link>
+                                                           → info.json in the job folder → VideoJson
+ → (Several)   a post with several videos: ChooseVideos, or the chosen entries one by one
  → Pick        FormatPicker.pick(video)                    → Plan: Single(format) | Pair(video, audio)
  → Fetch       YtDlp: yt-dlp --load-info-json info.json -f <ids> --fixup never --no-mtime
-                      -o <job>/%(format_id)s.%(ext)s       → one or two files in the job folder
+                      -o <job>/media/%(format_id)s.%(ext)s → one or two files in the job folder
  → Assemble    Pair             → MediaAssembler.join: video + audio into one MP4
    and save    Single MPEG-TS   → MediaAssembler.remux into MP4
                Single MP4/WebM  → copied as is
@@ -88,6 +98,18 @@ link
   yt-dlp with `--load-info-json`, so the site is only queried once. The one exception: when the
   fetch fails with HTTP 403 (YouTube sometimes refuses every URL of one extraction), the job
   extracts once more, picks again and fetches again; a second 403 fails the job.
+- **Posts with several videos** (product B11). With `--flat-playlist`, a post with several videos
+  (an X post, an Instagram carousel) comes back as a playlist whose entries are full videos with
+  their formats, while a real playlist or profile only lists links, without formats, and fails as
+  *not supported*. A post with one video entry is downloaded at once. With more, and no
+  `selection`, `download` returns `ChooseVideos`: each video's position, title, thumbnail URL and
+  length. The screen offers them (B11) and enqueues a second download with the chosen positions.
+  That second job extracts the post again (the first job's folder is gone, and the step is quick
+  for these sites), writes each chosen entry to its own `entry-<n>.json` for `--load-info-json`,
+  and downloads them one after another through the same pick, fetch, assemble and save, each into
+  a fresh `media/` folder. One video's failure does not stop the others; `Saved.failed` counts it,
+  and only when every chosen video fails is the job `Failed`. Progress splits evenly between the
+  chosen videos.
 - **`--fixup never`** on every fetch. The library always passes `--ffmpeg-location` to a binary the
   app does not ship, and the bundled yt-dlp crashes in its ffmpeg fixups without this option.
 - **FormatPicker** (pure, unit-tested) returns the first of: the best *pair* of a video-only H.264
@@ -122,8 +144,9 @@ link
   MediaStore entry and the job folder, and ends in the `CancellationException`. If the process is
   killed outright, MediaStore removes the stale pending entry itself after about a week.
 
-`MainViewModel` exposes one `UiState`: `Idle`, `NoLink`, `Preparing`, `Downloading(title, progress)`,
-`Saving(title)`, `Done(title, fileName, uri)`, `Failed(reason)`. It enqueues work and maps
+`MainViewModel` exposes one `UiState`: `Idle`, `NoLink`, `Preparing`, `Choosing(title, choices)`,
+`Downloading(title, position, count, progress)`, `Saving(title)`, `Done(videos, failed)`,
+`Failed(reason)`. It enqueues work and maps
 WorkManager's `WorkInfo` (state, progress data and output data) to `UiState`. The screen only
 renders `UiState`. A finished job's result is shown only if this ViewModel saw that job run, so a
 cold start is always `Idle` (product B9).
@@ -150,7 +173,11 @@ fresh extraction is *unknown*. Raw error text goes to Logcat only (tags `YtDlp` 
   Downloads carry the tag `download`; the ViewModel observes only those.
 - **DownloadWorker** calls `setForeground` at once, with a `dataSync` foreground service type and a
   low-importance progress notification that has a Cancel action. The finish notification opens the
-  video.
+  (first) video. Its input is the link and, for a post with several videos, the chosen positions.
+  A `ChooseVideos` outcome ends the work successfully with the choices written to a JSON file in
+  the cache and only that file's path in the output `Data` (WorkManager caps `Data` at 10 KB, and
+  thumbnail URLs are long); it posts no notification while the app is open, and a "Choose which
+  videos" notification that opens the app when it is not.
 - **UpdateWorker** calls `updateYoutubeDL(STABLE)`. It is enqueued at app start at most once a day,
   needs a network connection, and fails silently. The About sheet can enqueue it on demand.
 
@@ -207,5 +234,5 @@ decision in `work/decisions/`.
   it runs `VideoDownloader` itself on the links, checks the saved files, and can check that a
   cancel leaves nothing behind. Commands in
   [development.md](development.md).
-- **By hand:** the screen, the notification and the five must-work sites, on a device; each
-  session's handoff says what was tried.
+- **By hand:** the screen, the notification, the must-work sites and a post with several videos,
+  on a device; each session's handoff says what was tried.

@@ -274,3 +274,6 @@ they may need a remux (an HLS single is MPEG-TS): an MP4 single needs H.264/HEVC
 audio, or codecs left unstated; a WebM single is kept whatever its codecs. P03 also considers only
 formats yt-dlp downloads without ffmpeg (`https`, `http`, `m3u8_native`, `m3u8`,
 `http_dash_segments`). On the phone, every plan P03 picked matched the *Should pick* rows above.
+
+After P03 the owner dropped Reddit from the must-work sites ([DEC-005](DEC-005-posts-with-several-videos.md)),
+so its absence from these results no longer matters.

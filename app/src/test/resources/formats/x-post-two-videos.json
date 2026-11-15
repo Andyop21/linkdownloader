@@ -1,0 +1,78 @@
+{
+ "_note": "Trimmed sample of yt-dlp -J --flat-playlist output, shaped after yt-dlp's playlist results. Neutral IDs and titles; placeholder thumbnail URLs.",
+ "_type": "playlist",
+ "id": "samplexpost",
+ "title": "Sample post",
+ "extractor": "twitter",
+ "entries": [
+  {
+   "_type": "video",
+   "id": "samplexpost-1",
+   "title": "Sample post - clip 1",
+   "extractor": "twitter",
+   "thumbnail": "https://thumbs.example.invalid/clip1.jpg",
+   "duration": 12.4,
+   "formats": [
+    {
+     "format_id": "http-832",
+     "ext": "mp4",
+     "protocol": "https",
+     "vcodec": null,
+     "acodec": null,
+     "width": 480,
+     "height": 852,
+     "tbr": 832.0,
+     "filesize": null,
+     "filesize_approx": 2000000
+    },
+    {
+     "format_id": "http-2176",
+     "ext": "mp4",
+     "protocol": "https",
+     "vcodec": null,
+     "acodec": null,
+     "width": 720,
+     "height": 1280,
+     "tbr": 2176.0,
+     "filesize": null,
+     "filesize_approx": 5000000
+    }
+   ]
+  },
+  null,
+  {
+   "_type": "video",
+   "id": "samplexpost-2",
+   "title": "Sample post - clip 2",
+   "extractor": "twitter",
+   "thumbnail": "https://thumbs.example.invalid/clip2.jpg",
+   "duration": 30,
+   "formats": [
+    {
+     "format_id": "http-832",
+     "ext": "mp4",
+     "protocol": "https",
+     "vcodec": null,
+     "acodec": null,
+     "width": 480,
+     "height": 852,
+     "tbr": 832.0,
+     "filesize": null,
+     "filesize_approx": 2000000
+    },
+    {
+     "format_id": "http-2176",
+     "ext": "mp4",
+     "protocol": "https",
+     "vcodec": null,
+     "acodec": null,
+     "width": 720,
+     "height": 1280,
+     "tbr": 2176.0,
+     "filesize": null,
+     "filesize_approx": 5000000
+    }
+   ]
+  }
+ ]
+}

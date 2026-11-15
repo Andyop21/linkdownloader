@@ -58,7 +58,7 @@ class FailureClassifierTest {
         assertReason(NotSupported, "ERROR: Unsupported URL: https://example.com/")
         assertReason(NotSupported, "ERROR: 'not a link' is not a valid URL. Set --default-search \"ytsearch\"")
         assertReason(NotSupported, "ERROR: [example] 123: No video formats found!")
-        assertReason(NotSupported, "ERROR: [Reddit] abc: There's no video in this post")
+        assertReason(NotSupported, "ERROR: [example] abc: There's no video in this post")
     }
 
     @Test

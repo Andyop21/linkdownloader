@@ -1,0 +1,30 @@
+{
+ "_note": "Trimmed sample of yt-dlp -J --flat-playlist output, shaped after yt-dlp's playlist results. Neutral IDs and titles; placeholder thumbnail URLs.",
+ "_type": "playlist",
+ "id": "sampleplaylist",
+ "title": "Sample playlist",
+ "extractor": "youtube:tab",
+ "entries": [
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "sampleyt000",
+   "title": "Sample 0",
+   "duration": 60
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "sampleyt001",
+   "title": "Sample 1",
+   "duration": 60
+  },
+  {
+   "_type": "url",
+   "ie_key": "Youtube",
+   "id": "sampleyt002",
+   "title": "Sample 2",
+   "duration": 60
+  }
+ ]
+}

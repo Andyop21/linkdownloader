@@ -15,34 +15,52 @@ import java.io.File
 import java.io.FileDescriptor
 import java.io.FileOutputStream
 
-/** What a running download reports, in this order. */
+/** What a running download reports, in this order (per video, for a post with several). */
 sealed interface DownloadEvent {
     /** Checking the link with the site (extract and pick). */
     data object Preparing : DownloadEvent
 
-    data class TitleKnown(val title: String) : DownloadEvent
+    /** The video now being downloaded: video [position] of [count], counting from 1. */
+    data class TitleKnown(val title: String, val position: Int = 1, val count: Int = 1) : DownloadEvent
 
-    /** The overall fraction from 0 to 1. It never goes backwards. */
+    /** The overall fraction from 0 to 1, across every video of the job. It never goes backwards. */
     data class Progress(val fraction: Double) : DownloadEvent
 
-    /** The files are fetched; they are being assembled and written to `Downloads/`. */
+    /** A video is fetched; it is being assembled and written to `Downloads/`. */
     data object Saving : DownloadEvent
 }
 
+/** One video saved to `Downloads/`. */
+data class SavedVideo(val uri: Uri, val fileName: String, val title: String)
+
+/** One video of a post with several, offered for the user to choose. [index] is what [VideoDownloader.download] takes back. */
+data class VideoChoice(val index: Int, val title: String, val thumbnail: String?, val durationSeconds: Double?)
+
 /** How a download ended. A cancelled download ends in a [CancellationException] instead. */
 sealed interface DownloadOutcome {
-    data class Saved(val uri: Uri, val fileName: String, val title: String) : DownloadOutcome
+    /**
+     * The [videos] saved, in the order they were downloaded. When several were chosen and some
+     * failed, [failed] counts them; when all of them fail the outcome is [Failed].
+     */
+    data class Saved(val videos: List<SavedVideo>, val failed: Int = 0) : DownloadOutcome
+
+    /**
+     * The link is a post with several videos and no choice was passed: nothing was downloaded.
+     * Download again with the chosen [VideoChoice.index] values.
+     */
+    data class ChooseVideos(val title: String, val choices: List<VideoChoice>) : DownloadOutcome
 
     data class Failed(val reason: FailureReason) : DownloadOutcome
 }
 
 /**
  * The download pipeline in one call (docs/architecture.md § Download pipeline):
- * extract → pick → fetch → assemble → save.
+ * extract → pick → fetch → assemble → save, once per video.
  *
  * Each job works in its own folder under the cache directory, deleted when the job ends whatever
  * the outcome. Cancelling the calling coroutine destroys the yt-dlp process, deletes the job's
- * files and any pending `Downloads/` entry, and rethrows the [CancellationException].
+ * files and any pending `Downloads/` entry, and rethrows the [CancellationException]. Videos of the
+ * same job that were already saved stay saved.
  */
 class VideoDownloader(
     context: Context,
@@ -55,28 +73,36 @@ class VideoDownloader(
     /**
      * Downloads the video at [link] into `Downloads/`. [jobId] names the job's folder and its yt-dlp
      * process; it must be unique among running jobs. [onEvent] may be called from any thread.
+     *
+     * When [link] is a post with several videos, the first call (with no [selection]) returns
+     * [DownloadOutcome.ChooseVideos]; a second call with the chosen indices downloads those, one
+     * after another. A post with a single video is downloaded at once.
      */
-    suspend fun download(link: String, jobId: String, onEvent: (DownloadEvent) -> Unit): DownloadOutcome {
+    suspend fun download(
+        link: String,
+        jobId: String,
+        selection: List<Int>? = null,
+        onEvent: (DownloadEvent) -> Unit,
+    ): DownloadOutcome {
         val jobDir = File(appContext.cacheDir, "$JOBS_DIR/$jobId")
         val start = SystemClock.elapsedRealtime()
-        val emit = forwardOnlyProgress(onEvent)
         return try {
             if (!isOnline()) return DownloadOutcome.Failed(FailureReason.NoInternet)
+            val emit = forwardOnlyProgress(onEvent)
             emit(DownloadEvent.Preparing)
             withContext(Dispatchers.IO) {
                 jobDir.deleteRecursively()
                 check(jobDir.mkdirs()) { "cannot create the job folder" }
             }
             ytDlp.ensureReady()
-            run(link, jobId, jobDir, emit).also {
-                Log.i(TAG, "job $jobId saved in ${SystemClock.elapsedRealtime() - start} ms")
+            JobRun(link, jobId, jobDir, emit).run(selection).also {
+                Log.i(TAG, "job $jobId ended as ${it::class.simpleName} after ${SystemClock.elapsedRealtime() - start} ms")
             }
         } catch (e: CancellationException) {
             Log.i(TAG, "job $jobId cancelled after ${SystemClock.elapsedRealtime() - start} ms")
             throw e
         } catch (e: Exception) {
-            var reason = FailureClassifier.classify(e)
-            if (reason == FailureReason.Unknown && !isOnline()) reason = FailureReason.NoInternet
+            val reason = reasonFor(e)
             Log.w(TAG, "job $jobId failed as $reason after ${SystemClock.elapsedRealtime() - start} ms", e)
             DownloadOutcome.Failed(reason)
         } finally {
@@ -84,90 +110,148 @@ class VideoDownloader(
         }
     }
 
-    private suspend fun run(
-        link: String,
-        jobId: String,
-        jobDir: File,
-        onEvent: (DownloadEvent) -> Unit,
-    ): DownloadOutcome {
-        var extraction = extract(link, jobDir, jobId)
-        val video = extraction.video
-        val title = video.title?.trim()?.takeIf { it.isNotEmpty() }
-            ?: FileNamer.name(null, video.extractor, video.id, "").removeSuffix(".")
-        onEvent(DownloadEvent.TitleKnown(title))
+    /** One job: its extraction, which a fresh extraction after HTTP 403 replaces, and its events. */
+    private inner class JobRun(
+        private val link: String,
+        private val jobId: String,
+        private val jobDir: File,
+        private val emit: (DownloadEvent) -> Unit,
+    ) {
+        private var extraction: Extraction? = null
 
-        for (attempt in 1..MAX_EXTRACTIONS) {
-            val plan = FormatPicker.pick(extraction.video)
-            val tracker = ProgressTracker(plan.formats.map { it.knownSize })
-            val files = try {
-                fetch(extraction, plan, jobDir, jobId, tracker, onEvent)
-            } catch (e: DownloadException) {
-                if (!e.forbidden) throw e
-                if (attempt == MAX_EXTRACTIONS) {
-                    throw DownloadException(FailureReason.Unknown, "HTTP 403 again after a fresh extraction", e)
-                }
-                // YouTube sometimes refuses every URL of one extraction; a fresh one may work (DEC-003).
-                Log.i(TAG, "job $jobId got HTTP 403; extracting again")
-                withContext(Dispatchers.IO) { jobDir.listFiles().orEmpty().forEach { it.deleteRecursively() } }
-                extraction = extract(link, jobDir, jobId)
-                continue
+        suspend fun run(selection: List<Int>?): DownloadOutcome {
+            val root = extract().video
+            if (!root.isPlaylist) return DownloadOutcome.Saved(listOf(downloadOne(null, 0, 1)))
+
+            val entries = root.videoEntries
+            Log.i(TAG, "job $jobId: a playlist with ${root.entries.size} entries, ${entries.size} of them videos")
+            if (entries.isEmpty()) {
+                throw DownloadException(FailureReason.NotSupported, "a playlist or profile, not a post with videos")
             }
-            return save(extraction.video, title, plan, files, tracker, onEvent)
-        }
-        error("unreachable: every attempt either returns or throws")
-    }
+            val chosen = when {
+                entries.size == 1 -> listOf(0)
+                selection.isNullOrEmpty() -> return chooseVideos(root, entries)
+                else -> selection.distinct().filter { it in entries.indices }.sorted()
+            }
+            if (chosen.isEmpty()) throw DownloadException(FailureReason.Unknown, "the choice matches none of the post's videos")
 
-    private suspend fun extract(link: String, jobDir: File, jobId: String): Extraction {
-        val start = SystemClock.elapsedRealtime()
-        return ytDlp.extract(link, jobDir, jobId).also {
-            Log.i(TAG, "job $jobId extracted ${it.video.extractor}: ${it.video.formats.size} formats in ${SystemClock.elapsedRealtime() - start} ms")
+            val saved = mutableListOf<SavedVideo>()
+            val failures = mutableListOf<Exception>()
+            chosen.forEachIndexed { position, choice ->
+                try {
+                    saved += downloadOne(choice, position, chosen.size)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    if (chosen.size == 1) throw e
+                    Log.w(TAG, "job $jobId: video ${choice + 1} failed; going on with the rest", e)
+                    failures += e
+                }
+            }
+            if (saved.isEmpty()) throw failures.first()
+            return DownloadOutcome.Saved(saved, failures.size)
         }
-    }
 
-    private suspend fun fetch(
-        extraction: Extraction,
-        plan: Plan,
-        jobDir: File,
-        jobId: String,
-        tracker: ProgressTracker,
-        onEvent: (DownloadEvent) -> Unit,
-    ): List<File> {
-        val ids = plan.formats.map { it.formatId }
-        Log.i(TAG, "job $jobId plan ${plan::class.simpleName} ${ids.joinToString(",")}")
-        val start = SystemClock.elapsedRealtime()
-        val files = ytDlp.fetch(extraction.jsonFile, ids, jobDir, jobId) { line ->
-            tracker.onFetchLine(line)?.let { onEvent(DownloadEvent.Progress(it)) }
+        private fun chooseVideos(root: VideoJson, entries: List<IndexedValue<VideoJson>>): DownloadOutcome {
+            val choices = entries.mapIndexed { index, (_, entry) ->
+                VideoChoice(
+                    index = index,
+                    title = entry.title?.trim()?.takeIf { it.isNotEmpty() } ?: "Video ${index + 1}",
+                    thumbnail = entry.thumbnail,
+                    durationSeconds = entry.duration,
+                )
+            }
+            return DownloadOutcome.ChooseVideos(titleOf(root), choices)
         }
-        Log.i(TAG, "job $jobId fetched ${files.sumOf { it.length() }} bytes in ${SystemClock.elapsedRealtime() - start} ms")
-        return files
+
+        /**
+         * Downloads one video: the link's own video when [choice] is null, else video [choice] of
+         * the post. [position] and [count] place it in the job's progress.
+         */
+        private suspend fun downloadOne(choice: Int?, position: Int, count: Int): SavedVideo {
+            var titleSent = false
+            for (attempt in 1..MAX_EXTRACTIONS) {
+                val current = extraction ?: extract()
+                val (video, jsonFile) = videoAndJson(current, choice)
+                val title = titleOf(video)
+                if (!titleSent) {
+                    emit(DownloadEvent.TitleKnown(title, position + 1, count))
+                    titleSent = true
+                }
+                val plan = FormatPicker.pick(video)
+                val tracker = ProgressTracker(plan.formats.map { it.knownSize })
+                val toOverall: (Double) -> Unit = { emit(DownloadEvent.Progress((position + it) / count)) }
+                val outDir = File(jobDir, "media").also { withContext(Dispatchers.IO) { it.deleteRecursively(); it.mkdirs() } }
+                try {
+                    val files = try {
+                        fetch(jsonFile, plan, outDir) { line -> tracker.onFetchLine(line)?.let(toOverall) }
+                    } catch (e: DownloadException) {
+                        if (!e.forbidden) throw e
+                        if (attempt == MAX_EXTRACTIONS) {
+                            throw DownloadException(FailureReason.Unknown, "HTTP 403 again after a fresh extraction", e)
+                        }
+                        // YouTube sometimes refuses every URL of one extraction; a fresh one may work (DEC-003).
+                        Log.i(TAG, "job $jobId got HTTP 403; extracting again")
+                        extraction = null
+                        continue
+                    }
+                    emit(DownloadEvent.Saving)
+                    val saved = save(video, plan, files, tracker, toOverall)
+                    return SavedVideo(saved.uri, saved.fileName, title)
+                } finally {
+                    withContext(NonCancellable + Dispatchers.IO) { outDir.deleteRecursively() }
+                }
+            }
+            error("unreachable: every attempt either returns or throws")
+        }
+
+        private fun videoAndJson(current: Extraction, choice: Int?): Pair<VideoJson, File> {
+            if (choice == null) return current.video to current.jsonFile
+            val (rawIndex, entry) = current.video.videoEntries.getOrNull(choice)
+                ?: throw DownloadException(FailureReason.Unknown, "video ${choice + 1} is gone from the post")
+            return entry to current.entryFile(rawIndex, File(jobDir, "entry-$choice.json"))
+        }
+
+        private suspend fun extract(): Extraction {
+            val start = SystemClock.elapsedRealtime()
+            return ytDlp.extract(link, jobDir, jobId).also {
+                extraction = it
+                Log.i(TAG, "job $jobId extracted ${it.video.extractor}: ${it.video.formats.size} formats, ${it.video.entries.size} entries in ${SystemClock.elapsedRealtime() - start} ms")
+            }
+        }
+
+        private suspend fun fetch(jsonFile: File, plan: Plan, outDir: File, onLine: (String) -> Unit): List<File> {
+            val ids = plan.formats.map { it.formatId }
+            Log.i(TAG, "job $jobId plan ${plan::class.simpleName} ${ids.joinToString(",")}")
+            val start = SystemClock.elapsedRealtime()
+            val files = ytDlp.fetch(jsonFile, ids, outDir, jobId, onLine)
+            Log.i(TAG, "job $jobId fetched ${files.sumOf { it.length() }} bytes in ${SystemClock.elapsedRealtime() - start} ms")
+            return files
+        }
     }
 
     private suspend fun save(
         video: VideoJson,
-        title: String,
         plan: Plan,
         files: List<File>,
         tracker: ProgressTracker,
-        onEvent: (DownloadEvent) -> Unit,
-    ): DownloadOutcome {
-        onEvent(DownloadEvent.Saving)
+        onProgress: (Double) -> Unit,
+    ): SavedFile {
         val output = withContext(Dispatchers.IO) { outputFor(plan, files) }
-        Log.i(TAG, "assembling as $output")
+        Log.i(TAG, "assembling as ${output::class.simpleName}")
         val fileName = FileNamer.name(video.title, video.extractor, video.id, output.extension)
-        val onProgress: (Double) -> Unit = { progress ->
-            tracker.onAssembleProgress(progress)?.let { onEvent(DownloadEvent.Progress(it)) }
-        }
+        val onAssemble: (Double) -> Unit = { progress -> tracker.onAssembleProgress(progress)?.let(onProgress) }
         val start = SystemClock.elapsedRealtime()
         val saved = saver.save(fileName, output.mimeType) { descriptor ->
             when (output) {
-                is Output.Join -> MediaAssembler.join(output.video, output.audio, descriptor.fileDescriptor, onProgress)
-                is Output.Remux -> MediaAssembler.remux(output.file, descriptor.fileDescriptor, onProgress)
-                is Output.Copy -> copy(output.file, descriptor.fileDescriptor, onProgress)
+                is Output.Join -> MediaAssembler.join(output.video, output.audio, descriptor.fileDescriptor, onAssemble)
+                is Output.Remux -> MediaAssembler.remux(output.file, descriptor.fileDescriptor, onAssemble)
+                is Output.Copy -> copy(output.file, descriptor.fileDescriptor, onAssemble)
             }
         }
         Log.i(TAG, "saved in ${SystemClock.elapsedRealtime() - start} ms")
-        tracker.onSaved()?.let { onEvent(DownloadEvent.Progress(it)) }
-        return DownloadOutcome.Saved(saved.uri, saved.fileName, title)
+        tracker.onSaved()?.let(onProgress)
+        return saved
     }
 
     /** How the fetched files become the saved file, decided by their real container. */
@@ -217,6 +301,15 @@ class VideoDownloader(
             }
             output.flush()
         }
+
+    private fun titleOf(video: VideoJson): String =
+        video.title?.trim()?.takeIf { it.isNotEmpty() }
+            ?: FileNamer.name(null, video.extractor, video.id, "").removeSuffix(".")
+
+    private fun reasonFor(error: Exception): FailureReason {
+        val reason = FailureClassifier.classify(error)
+        return if (reason == FailureReason.Unknown && !isOnline()) FailureReason.NoInternet else reason
+    }
 
     /**
      * Passes events on, dropping any progress that is not ahead of the last one sent: a fresh

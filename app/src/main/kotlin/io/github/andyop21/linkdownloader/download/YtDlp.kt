@@ -14,11 +14,19 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.JsonObject
 import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** The `-J` JSON of one video, parsed, and the file it was saved to for `--load-info-json`. */
-data class Extraction(val video: VideoJson, val jsonFile: File)
+/**
+ * The `-J` JSON of one link, parsed, and the file it was saved to for `--load-info-json`. For a
+ * post with several videos, [entryFile] writes one entry out for its own `--load-info-json`.
+ */
+class Extraction(val video: VideoJson, val jsonFile: File, private val tree: JsonObject) {
+
+    /** Writes entry [index] of [VideoJson.entries] to [file] and returns it. */
+    fun entryFile(index: Int, file: File): File = file.apply { writeText(VideoJson.entryText(tree, index)) }
+}
 
 /**
  * Runs yt-dlp through youtubedl-android, off the main thread, with the options DEC-003 found
@@ -38,34 +46,40 @@ class YtDlp(private val context: Context) {
         }
     }
 
-    /** `yt-dlp -J --no-playlist <link>`; the JSON is saved in [jobDir] and parsed. */
+    /**
+     * `yt-dlp -J --no-playlist --flat-playlist <link>`; the JSON is saved in [jobDir] and parsed.
+     * `--flat-playlist` keeps a real playlist or profile from being extracted video by video; a post
+     * with several videos still comes back with every video's formats.
+     */
     suspend fun extract(link: String, jobDir: File, processId: String): Extraction {
         val request = YoutubeDLRequest(link)
             .addOption("-J")
             .addOption("--no-playlist")
+            .addOption("--flat-playlist")
         val response = run("extract", request, processId) { _ -> }
         return withContext(Dispatchers.IO) {
             val jsonFile = File(jobDir, INFO_JSON)
             jsonFile.writeText(response.out)
-            val video = try {
-                VideoJson.parse(response.out)
+            val (video, tree) = try {
+                VideoJson.parseTree(response.out)
             } catch (e: SerializationException) {
                 throw DownloadException(FailureReason.Unknown, "yt-dlp's JSON could not be read", e)
             } catch (e: IllegalArgumentException) {
                 throw DownloadException(FailureReason.Unknown, "yt-dlp's JSON could not be read", e)
             }
-            Extraction(video, jsonFile)
+            Extraction(video, jsonFile, tree)
         }
     }
 
     /**
-     * Downloads [formatIds] from the saved [jsonFile] into [jobDir], in that order, and returns the
-     * files in the same order. [onLine] receives every line yt-dlp prints, on yt-dlp's reader thread.
+     * Downloads [formatIds] from the saved [jsonFile] into the empty folder [outDir], in that order,
+     * and returns the files in the same order. [onLine] receives every line yt-dlp prints, on
+     * yt-dlp's reader thread.
      */
     suspend fun fetch(
         jsonFile: File,
         formatIds: List<String>,
-        jobDir: File,
+        outDir: File,
         processId: String,
         onLine: (String) -> Unit,
     ): List<File> {
@@ -75,14 +89,14 @@ class YtDlp(private val context: Context) {
             // No ffmpeg is shipped: yt-dlp's ffmpeg fixups crash the bundled version (DEC-003).
             .addOption("--fixup", "never")
             .addOption("--no-mtime")
-            .addOption("-o", "${jobDir.absolutePath}/%(format_id)s.%(ext)s")
+            .addOption("-o", "${outDir.absolutePath}/%(format_id)s.%(ext)s")
         run("fetch", request, processId, onLine)
-        return withContext(Dispatchers.IO) { fetchedFiles(jobDir, jsonFile, formatIds) }
+        return withContext(Dispatchers.IO) { fetchedFiles(outDir, formatIds) }
     }
 
-    private fun fetchedFiles(jobDir: File, jsonFile: File, formatIds: List<String>): List<File> {
-        val files = jobDir.listFiles().orEmpty()
-            .filter { it.isFile && it != jsonFile && !it.name.endsWith(".part") && !it.name.endsWith(".ytdl") }
+    private fun fetchedFiles(outDir: File, formatIds: List<String>): List<File> {
+        val files = outDir.listFiles().orEmpty()
+            .filter { it.isFile && !it.name.endsWith(".part") && !it.name.endsWith(".ytdl") }
         val byId = formatIds.map { id -> files.firstOrNull { it.nameWithoutExtension == id } }
         if (byId.all { it != null }) return byId.filterNotNull()
         // yt-dlp may have changed a character of the format ID in the file name; fall back to the

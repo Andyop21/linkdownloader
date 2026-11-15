@@ -4,7 +4,7 @@ A tiny Android app that does one thing: copy a video link, tap **Paste**, and th
 lands in your phone's Downloads folder.
 
 It works with the sites [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports (YouTube, TikTok,
-Instagram, X, Reddit and many more), through
+Instagram, X and many more), through
 [youtubedl-android](https://github.com/yausername/youtubedl-android).
 
 > Status: in development. Built for personal use and installed by sideloading the APK.

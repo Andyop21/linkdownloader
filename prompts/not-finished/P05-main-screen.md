@@ -28,9 +28,13 @@ entry point.
    a link, a link with tracking parameters, two links, no link, `www.` without a scheme: treat as
    no link unless the owner says otherwise).
 2. **`UiState` and `MainViewModel`**:
-   - `UiState`: `Idle`, `NoLink`, `Preparing`, `Downloading(title, progress)`, `Saving(title)`,
-     `Done(title, fileName, uri)`, `Failed(reason)`, plus the bar's text.
-   - `onPaste(clipText)`, `onSubmit(barText)`, `onCancel()`, `onBarChanged(text)`, `onUpdateEngine()`.
+   - `UiState`: `Idle`, `NoLink`, `Preparing`, `Choosing(title, choices)`,
+     `Downloading(title, position, count, progress)`, `Saving(title)`, `Done(videos, failed)`,
+     `Failed(reason)`, plus the bar's text (`docs/architecture.md` § *Download pipeline*).
+   - `onPaste(clipText)`, `onSubmit(barText)`, `onCancel()`, `onBarChanged(text)`, `onUpdateEngine()`,
+     `onChoose(positions)`, `onDismissChoice()`.
+   - A `ChooseVideos` result from P04's worker becomes `Choosing`; `onChoose` enqueues the same link
+     again with the chosen positions; `onDismissChoice` returns to `Idle`.
    - Maps `DownloadQueue.observeDownloads()` to `UiState`. A finished job shows `Done`/`Failed` only
      if this ViewModel enqueued it or saw it running (product B9).
    - Takes `DownloadQueue` behind a small interface so unit tests use a fake. Unit tests cover
@@ -52,17 +56,25 @@ entry point.
    `docs/product.md`. No raw error text, ever.
 5. **Notification permission.** On API 33+, the first time a download starts, request
    `POST_NOTIFICATIONS` once. A refusal does not block the download and is not asked again.
-6. **About sheet** (product B10): a long-press on the header opens a modal bottom sheet with the app
+6. **Choice sheet** (product B11, DEC-005): a modal bottom sheet with the post's title and a grid
+   of the videos' thumbnails, each with its length and a selected mark; all start selected. Tapping
+   a thumbnail toggles it; **Select all**; **Download (n)** disabled at zero; dismissing it calls
+   `onDismissChoice()`. Thumbnails are loaded from their URLs off the main thread and scaled down
+   (plain `HttpURLConnection` + `BitmapFactory`, cached in memory for the sheet's life, a neutral
+   placeholder on failure); an image library would be a new dependency and needs a decision
+   record first. Each thumbnail has a content description ("Video 2, 0:08, selected").
+7. **About sheet** (product B10): a long-press on the header opens a modal bottom sheet with the app
    version, the yt-dlp version, and an **Update yt-dlp** button that calls `onUpdateEngine()` and
    shows "Checking…", then "Up to date" or the new version.
-7. **Remove** any debug-only download trigger left by P04 now that the screen exists.
+8. **Remove** any debug-only download trigger left by P04 now that the screen exists.
 
 ## Definition of done
 
 - [ ] `./gradlew assembleDebug testDebugUnitTest lintDebug` passes; `LinkParser` and `MainViewModel`
       are unit-tested.
-- [ ] Every behaviour B1–B10 in `docs/product.md` was tried on a real phone and is ticked off in the
-      handoff, plus the five must-work sites from the screen.
+- [ ] Every behaviour B1–B11 in `docs/product.md` was tried on a real phone and is ticked off in the
+      handoff, plus the must-work sites from the screen (YouTube and a Short, Instagram, X, TikTok)
+      and a post with several videos (choose one, some, and all).
 - [ ] TalkBack reads every control sensibly; touch targets are at least 48 dp.
 - [ ] `docs/product.md` and `docs/architecture.md` match what was built; any wording or behaviour
       the owner should look at is listed under *Open questions*.

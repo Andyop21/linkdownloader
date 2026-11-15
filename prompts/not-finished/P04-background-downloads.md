@@ -30,14 +30,21 @@ final small icon; use a simple placeholder vector until then).
    - Runs `VideoDownloader.download`, publishing `setProgress` data: stage (preparing,
      downloading, saving), title and fraction. Throttle progress updates (about four per second at
      most) so neither WorkManager nor the notification is flooded.
-   - Output on success: uri, file name, title. On failure: the `FailureReason` name. A failed
-     download returns `Result.failure`, never `retry`.
+   - Input: the link and, optionally, the chosen video positions of a post with several videos
+     (product B11, DEC-005); passed through to `VideoDownloader.download(link, jobId, selection, …)`.
+   - Output on success (`Saved`): each video's uri, file name and title, plus the `failed` count.
+     On `ChooseVideos`: success with the choices written to a JSON file in the cache and only its
+     path (and the post's title) in the output `Data`, which WorkManager caps at 10 KB. On failure:
+     the `FailureReason` name. A failed download returns `Result.failure`, never `retry`.
+   - Progress data also carries the position and count from `TitleKnown` ("2 of 3").
    - Stopping the work cancels the coroutine, which P03 already turns into a clean cancel.
 3. **Notifications** (`download/Notifications.kt`):
    - One channel, "Downloads", low importance, created at app start.
    - The ongoing notification: title (or "Getting ready…"), determinate progress once known, and a
      **Cancel** action using `WorkManager.createCancelPendingIntent`.
-   - On completion: "Saved to Downloads" with the file name; tapping opens the video
+   - On `ChooseVideos`, only when the app is not in the foreground: "Choose which videos to save",
+     tapping opens the app on the choice (the choice is offered by P05's screen).
+   - On completion: "Saved to Downloads" with the file name (or "3 videos saved"); tapping opens the (first) video
      (`ACTION_VIEW` on the content uri with `FLAG_GRANT_READ_URI_PERMISSION`). On failure: the
      friendly reason from `docs/product.md`. Neither is ongoing; both auto-cancel on tap.
    - Tapping the ongoing notification opens the app.
@@ -48,7 +55,7 @@ final small icon; use a simple placeholder vector until then).
 5. **`UpdateWorker`**: calls `YoutubeDL.getInstance().updateYoutubeDL(context, STABLE)` and stores
    the time of the last successful check. Needs a network connection. Fails silently (logs only).
 6. **`DownloadQueue`** (the API P05 uses), in `download`:
-   - `startDownload(link)`: enqueues a `DownloadWorker` on the unique work name `engine` with
+   - `startDownload(link, selection = null)`: enqueues a `DownloadWorker` on the unique work name `engine` with
      `APPEND_OR_REPLACE`.
    - `updateEngineIfDue()`: enqueues `UpdateWorker` on `engine` with `APPEND_OR_REPLACE` when the
      last successful check is older than 24 hours. Called from `LinkDownloaderApp.onCreate`.

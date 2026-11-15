@@ -53,6 +53,8 @@ import java.util.Locale
  *   played by hand. Default `false`.
  * - `cancel`: with `pipeline=true`, `true` also cancels two downloads of the first link, once
  *   during the fetch and once while saving, and checks that nothing is left behind. Default `false`.
+ * - `select`: with `pipeline=true`, which videos of a post with several to download after the
+ *   choice is offered: `all`, or 0-based positions such as `0,2`. Default `all`.
  *
  * The probe's own lines name each link by its number and host only. Titles and yt-dlp's messages
  * still carry video IDs and account names, so read the log before quoting it in public records.
@@ -67,6 +69,7 @@ class EngineProbeTest {
 
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
     private var allCandidates = false
+    private var select = "all"
 
     @Test
     fun probeLinks() {
@@ -78,6 +81,7 @@ class EngineProbeTest {
         if (arguments.getString(ARG_PIPELINE)?.toBooleanStrictOrNull() == true) {
             val keep = arguments.getString(ARG_KEEP)?.toBooleanStrictOrNull() ?: false
             val cancel = arguments.getString(ARG_CANCEL)?.toBooleanStrictOrNull() ?: false
+            select = arguments.getString(ARG_SELECT) ?: "all"
             probePipeline(links, update, keep, cancel)
             return
         }
@@ -147,15 +151,38 @@ class EngineProbeTest {
         assertTrue("Pipeline probe failures:\n" + failures.joinToString("\n"), failures.isEmpty())
     }
 
-    /** Downloads one link with [downloader]; returns the saved file's uri. */
-    private fun pipelineLink(downloader: VideoDownloader, name: String, link: String, jobId: String): Uri {
+    /**
+     * Downloads one link with [downloader]; returns the saved files' uris. A post with several
+     * videos is offered first; the probe logs the choices and downloads the ones `select` names.
+     */
+    private fun pipelineLink(downloader: VideoDownloader, name: String, link: String, jobId: String): List<Uri> {
+        val first = runPipeline(downloader, name, link, jobId, null)
+        if (first !is DownloadOutcome.ChooseVideos) return checkSaved(name, first, jobId)
+        log("[$name] a post with ${first.choices.size} videos (title ${first.title.length} chars):")
+        first.choices.forEach {
+            log("[$name]   choice ${it.index}: title ${it.title.length} chars, ${it.durationSeconds} s, thumbnail from ${it.thumbnail?.let { url -> Uri.parse(url).host }}")
+        }
+        check(first.choices.size > 1) { "a choice of fewer than two videos" }
+        check(first.choices.all { it.thumbnail != null }) { "a choice without a thumbnail" }
+        val selection = if (select == "all") first.choices.map { it.index } else select.split(',').map { it.trim().toInt() }
+        log("[$name] downloading choices $selection")
+        return checkSaved(name, runPipeline(downloader, name, link, "$jobId-chosen", selection), "$jobId-chosen")
+    }
+
+    private fun runPipeline(
+        downloader: VideoDownloader,
+        name: String,
+        link: String,
+        jobId: String,
+        selection: List<Int>?,
+    ): DownloadOutcome {
         val start = SystemClock.elapsedRealtime()
         val marks = mutableListOf<String>()
         var progressEvents = 0
         var last = -1.0
         var backwards = false
         val outcome = runBlocking {
-            downloader.download(link, jobId) { event ->
+            downloader.download(link, jobId, selection) { event ->
                 val at = SystemClock.elapsedRealtime() - start
                 when (event) {
                     is DownloadEvent.Progress -> {
@@ -164,24 +191,31 @@ class EngineProbeTest {
                         if (last < 0.5 && event.fraction >= 0.5) marks += "50% at $at ms"
                         last = event.fraction
                     }
-                    is DownloadEvent.TitleKnown -> marks += "title (${event.title.length} chars) at $at ms"
+                    is DownloadEvent.TitleKnown ->
+                        marks += "title ${event.position}/${event.count} (${event.title.length} chars) at $at ms"
                     DownloadEvent.Preparing -> marks += "preparing at $at ms"
                     DownloadEvent.Saving -> marks += "saving at $at ms"
                 }
             }
         }
         val total = SystemClock.elapsedRealtime() - start
-        log("[$name] events: ${marks.joinToString("; ")}")
+        log("[$name] ${outcome::class.simpleName} after $total ms; events: ${marks.joinToString("; ")}")
         log("[$name] progress: $progressEvents events, last ${"%.3f".format(Locale.ROOT, last)}, went backwards: $backwards")
-        when (outcome) {
-            is DownloadOutcome.Failed -> throw AssertionError("failed as ${outcome.reason} after $total ms")
-            is DownloadOutcome.Saved -> {
-                log("[$name] saved in $total ms as '${outcome.fileName}' (${outcome.uri})")
-                log("[$name]   ${describeSaved(outcome.uri)}")
-                check(!backwards) { "progress went backwards" }
-                check(last == 1.0) { "progress ended at $last" }
-                check(!File(context.cacheDir, "jobs/$jobId").exists()) { "job folder left behind" }
-                return outcome.uri
+        check(!backwards) { "progress went backwards" }
+        check(!File(context.cacheDir, "jobs/$jobId").exists()) { "job folder left behind" }
+        if (outcome is DownloadOutcome.Saved) check(last == 1.0) { "progress ended at $last" }
+        return outcome
+    }
+
+    private fun checkSaved(name: String, outcome: DownloadOutcome, jobId: String): List<Uri> = when (outcome) {
+        is DownloadOutcome.Failed -> throw AssertionError("$jobId failed as ${outcome.reason}")
+        is DownloadOutcome.ChooseVideos -> throw AssertionError("$jobId offered a choice again")
+        is DownloadOutcome.Saved -> {
+            check(outcome.failed == 0) { "${outcome.failed} chosen video(s) failed" }
+            outcome.videos.map { video ->
+                log("[$name] saved '${video.fileName}' (${video.uri})")
+                log("[$name]   ${describeSaved(video.uri)}")
+                video.uri
             }
         }
     }
@@ -556,6 +590,7 @@ class EngineProbeTest {
         const val ARG_PIPELINE = "pipeline"
         const val ARG_KEEP = "keep"
         const val ARG_CANCEL = "cancel"
+        const val ARG_SELECT = "select"
 
         fun log(message: String) {
             Log.i(TAG, message)

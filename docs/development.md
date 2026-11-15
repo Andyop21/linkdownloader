@@ -89,6 +89,7 @@ end at 1, or if a job folder is left behind. Two more arguments go with it:
 | Argument | Does |
 |---|---|
 | `keep=true` | Leaves the saved videos in `Downloads/`, so they can be played in the gallery or Files app. They stay there after the test uninstalls the app; delete them by hand (Files app, or `adb shell rm "/sdcard/Download/<name>"`). Without it the probe deletes them. |
+| `select=all` | For a post with several videos: the probe logs the choices it was offered (count, lengths, thumbnail hosts), then downloads the chosen ones in a second job, as the screen does. `all` (the default) or 0-based positions such as `0,2`. |
 | `cancel=true` | Also downloads the first link twice more and cancels it, once during the fetch (past 20 %) and once while it is being written to `Downloads/` (past 95 %), and checks that no `Downloads/` entry, job folder or yt-dlp process is left. Put a link with a large file first (a YouTube video), so the fetch passes 20 % in more than one step. |
 
 Read the pipeline's own lines with `adb logcat -d -s EngineProbe VideoDownloader YtDlp`; they show
