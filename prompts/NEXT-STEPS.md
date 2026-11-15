@@ -21,7 +21,7 @@ Finished: P03, P04.
 
 ### Stage 3 — The screen
 
-- [P06](not-finished/P06-look-and-feel.md): pastel theme, Nunito, the mascot, motion and the app icon. Entry: P05.
+Finished: P05, P06.
 
 ### Stage 4 — Ship
 
