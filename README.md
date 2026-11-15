@@ -6,6 +6,8 @@ your phone's `Downloads/` folder.
 Everything happens on the phone, through [yt-dlp](https://github.com/yt-dlp/yt-dlp) running inside
 the app. No server, no account, no ads, no analytics.
 
+<img src="docs/images/screenshot-light.png" alt="The Link Downloader screen: a lavender mascot, the link bar, a big Paste button and a card saying Ready when you are" width="270">
+
 ## How it works
 
 1. Copy a video link in any app (the share sheet's *Copy link* is fine; text around the link is
