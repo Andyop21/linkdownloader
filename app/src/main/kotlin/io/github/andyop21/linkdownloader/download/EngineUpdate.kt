@@ -17,6 +17,18 @@ object EngineUpdateRule {
         lastCheckMillis == null || nowMillis < lastCheckMillis || nowMillis - lastCheckMillis >= INTERVAL_MILLIS
 }
 
+/** How a yt-dlp update check ended ([UpdateWorker]'s output). [version] is null when it cannot be read. */
+sealed interface EngineUpdateResult {
+    /** A newer yt-dlp was installed. */
+    data class Updated(val version: String?) : EngineUpdateResult
+
+    /** yt-dlp was already the latest. */
+    data class UpToDate(val version: String?) : EngineUpdateResult
+
+    /** The check did not happen or failed: offline, not due, or an error. */
+    data object NotChecked : EngineUpdateResult
+}
+
 /** Keeps the time of the last successful yt-dlp update check. */
 class EngineUpdateStore(context: Context) {
 

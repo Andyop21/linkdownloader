@@ -57,6 +57,9 @@ class DownloadQueue(
     /** Every download WorkManager knows, running or finished. */
     fun observeDownloads(): Flow<List<WorkInfo>> = workManager.getWorkInfosByTagFlow(DownloadData.TAG_DOWNLOAD)
 
+    /** The work [id] (a download or an update) as WorkManager sees it; null once it is pruned. */
+    fun observeWork(id: UUID): Flow<WorkInfo?> = workManager.getWorkInfoByIdFlow(id)
+
     /**
      * yt-dlp's version, such as `2026.10.26`, or null if it cannot be read. After an update it is
      * the stored version; before the first one, yt-dlp is asked (about a second).

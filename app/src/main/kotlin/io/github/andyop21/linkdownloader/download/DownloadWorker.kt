@@ -50,10 +50,10 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
         } finally {
             Notifications.cancel(applicationContext, Notifications.ID_PROGRESS)
         }
-        return finish(outcome)
+        return finish(link, outcome)
     }
 
-    private suspend fun finish(outcome: DownloadOutcome): Result = when (outcome) {
+    private suspend fun finish(link: String, outcome: DownloadOutcome): Result = when (outcome) {
         is DownloadOutcome.Saved -> {
             Notifications.showSaved(applicationContext, outcome.videos, outcome.failed)
             val videos = outcome.videos.map { DownloadResult.Video(it.uri.toString(), it.fileName, it.title) }
@@ -64,7 +64,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 ChoicesFile.write(applicationContext.cacheDir, id.toString(), ChoiceList(outcome.title, outcome.choices))
             }
             if (!isAppVisible()) Notifications.showChooseVideos(applicationContext, id, outcome.title)
-            Result.success(DownloadData.choose(outcome.title, file.absolutePath))
+            Result.success(DownloadData.choose(link, outcome.title, file.absolutePath))
         }
         is DownloadOutcome.Failed -> {
             Notifications.showFailed(applicationContext, outcome.reason)

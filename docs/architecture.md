@@ -41,7 +41,7 @@ One Gradle module, `app`. Packages under `io.github.andyop21.linkdownloader`:
 | Package | Holds |
 |---|---|
 | (root) | `LinkDownloaderApp` (initialises youtubedl-android once, creates the notification channel, schedules the yt-dlp update) and `MainActivity` |
-| `ui` | `MainScreen`, `MainViewModel`, `UiState`, the mascot and the About sheet |
+| `ui` | `MainScreen` and its components (`HeaderWithMascot`, `LinkBar`, `PasteButton`, `StatusCard`), `MainViewModel`, `UiState`, `Downloads` (the ViewModel's view of the download side), the placeholder mascot, the choice sheet with its thumbnail loader, the About sheet and the one-time notification permission request |
 | `ui.theme` | Colours, type, shapes and motion |
 | `link` | `LinkParser`: finds the first `http`/`https` link in a piece of text. Pure Kotlin. |
 | `download` | The download pipeline (below), `DownloadWorker`, `UpdateWorker`, the notifications and `DownloadQueue` (§ *Background work*) |
@@ -49,12 +49,9 @@ One Gradle module, `app`. Packages under `io.github.andyop21.linkdownloader`:
 Dependencies point inward: `ui` uses `link` and `download`; `link` uses nothing. Pure-Kotlin parts
 (`LinkParser`, `VideoJson`, `FormatPicker`, `FailureClassifier`, `FileNamer`, `ProgressTracker`,
 `Container`, `DownloadProgress`, `throttleLatest`, `EngineUpdateRule`, `ChoicesFile`) take no
-Android types, so they are tested on the JVM; so is `DownloadData`, which only uses WorkManager's
-`Data`.
-
-Debug builds add one more activity, `debug.DebugDownloadActivity` in `app/src/debug`, a trigger
-for checking background downloads from `adb` ([development.md](development.md)). Release builds do
-not contain it.
+Android types, so they are tested on the JVM; so are `DownloadData` and `UpdateWorker`'s output,
+which only use WorkManager's `Data`, and `MainViewModel`, which reaches the download side only
+through the `Downloads` interface.
 
 ## Download pipeline
 
@@ -150,12 +147,45 @@ link
   MediaStore entry and the job folder, and ends in the `CancellationException`. If the process is
   killed outright, MediaStore removes the stale pending entry itself after about a week.
 
-`MainViewModel` exposes one `UiState`: `Idle`, `NoLink`, `Preparing`, `Choosing(title, choices)`,
-`Downloading(title, position, count, progress)`, `Saving(title)`, `Done(videos, failed)`,
-`Failed(reason)`. It enqueues work and maps
-WorkManager's `WorkInfo` (state, progress data and output data) to `UiState`. The screen only
-renders `UiState`. A finished job's result is shown only if this ViewModel saw that job run, so a
-cold start is always `Idle` (product B9).
+## The screen
+
+`MainViewModel` exposes one `UiState`: the bar's text, a `Status` and the About sheet's state.
+`Status` is one of `Idle`, `NoLink(fromClipboard)`, `Preparing`, `Choosing(title, choices)`,
+`Downloading(title, position, count, progress)`, `Saving(title, position, count, progress)`,
+`Done(jobId, videos, saved, failed)` and `Failed(reason)`; `Preparing`, `Downloading` and `Saving`
+count as running. The screen only renders `UiState` and passes taps back as calls (`onPaste`,
+`onSubmit`, `onBarChanged`, `onCancel`, `onChoose`, `onDismissChoice`, `onOpenChoice`,
+`onOpenAbout`, `onCloseAbout`, `onUpdateEngine`).
+
+- **`Downloads`** is the small interface the ViewModel uses instead of `DownloadQueue`, so its unit
+  tests use a fake: `start`, `cancel`, `jobs()` (each download's state, progress and result, mapped
+  from `WorkInfo`), `readChoices`, `updateEngine` and `engineVersion`. `WorkDownloads` is the real
+  one.
+- **Which job is shown.** The ViewModel follows one job at a time: the one it enqueued, else a job
+  still queued or running when it first sees the list (B9). A finished job is shown only when it is
+  that job, or when the app was opened from the "Choose which videos" notification
+  (`onOpenChoice`, from `MainActivity`), so a cold start is always `Idle`. A job whose end was
+  shown, or that was cancelled or dismissed here, is never shown again. Progress shown for a job
+  never goes backwards; a post's later video starting over at *preparing* keeps showing the
+  download.
+- **Choosing.** A `Choose` result carries the link, so the chosen positions are queued as a second
+  download of the same link, even after a process death. The choices are read from the file
+  `ChoicesFile` wrote; if it is gone, the status is `Failed(Unknown)`.
+- **Platform glue** stays in `MainScreen`: the clipboard is read only when Paste is tapped
+  (`ClipboardManager`, first item, `coerceToText`); **Open** sends `ACTION_VIEW` with a read grant
+  and shows a snackbar when no app can play the video; a `Confirm` haptic plays once per finished
+  job (also across rotations); `POST_NOTIFICATIONS` is asked once (§ *Permissions*).
+- **Components** (`HeaderWithMascot`, `LinkBar`, `PasteButton`, `StatusCard`, `ChoiceSheet`,
+  `AboutSheet`) take state and callbacks and hold no logic, so P06 only restyles them. The column
+  is at most 560 dp wide and scrolls, so small phones, landscape and the largest font all fit.
+- **Choice sheet** (B11, DEC-005): a modal bottom sheet with an adaptive grid of thumbnails, all
+  selected at first. Thumbnails are fetched with `HttpURLConnection` on `Dispatchers.IO`, decoded
+  with `BitmapFactory` at a power-of-two reduction close to 360 px, and kept in memory for the
+  sheet's life; a failure leaves a neutral placeholder. Each tile reads "Video 2, 0:08, selected".
+- **About sheet** (B10): opened by a long-press on the header (TalkBack: the "Show app info"
+  long-press action); shows the app version, the yt-dlp version and **Update yt-dlp**, which queues
+  `updateEngineNow()` and shows "Checking…", then "Up to date", "Updated to …", or that it could not
+  check.
 
 ## Failure handling
 
@@ -185,12 +215,14 @@ Why: [DEC-006](work/decisions/DEC-006-workmanager-background-downloads.md).
 - **`DownloadQueue`** is the API the screen uses: `startDownload(link, selection)` (returns the
   work ID), `cancel(id)`, `observeDownloads()` (a `Flow` of the `download` work), `updateEngineIfDue()`
   (called from `LinkDownloaderApp.onCreate`), `updateEngineNow()` and `engineVersion()` (the stored
-  version after an update, else `yt-dlp --version`).
+  version after an update, else `yt-dlp --version`), plus `observeWork(id)` for one piece of work
+  (the About sheet's update).
 - **`DownloadData`** holds the keys and turns WorkManager's `Data` into types: the input (link and
   chosen positions), the progress (`DownloadProgress`: stage *preparing*, *downloading* or
   *saving*, title, position and count, overall fraction once known) and the result
   (`DownloadResult`: `Saved` with each video's uri, file name and title and the `failed` count,
-  `Choose` with the post's title and the choices file, or `Failed` with the `FailureReason`).
+  `Choose` with the link, the post's title and the choices file, or `Failed` with the
+  `FailureReason`).
   Titles are cut to 200 characters. `Data` is capped at 10 KB: should a post's saved list not fit,
   its last videos are left out of the list but still counted.
 - **DownloadWorker** (`CoroutineWorker`) calls `setForeground` at once, with a `dataSync`
@@ -217,7 +249,9 @@ Why: [DEC-006](work/decisions/DEC-006-workmanager-background-downloads.md).
   check. `updateEngineIfDue()` enqueues it when that is a day old or more (`EngineUpdateRule`), and
   the worker checks the rule again when it runs, unless forced by `updateEngineNow()`. It has no
   network constraint: offline it skips and records nothing, so the next start tries again. It always
-  ends in success and only logs, so it never holds back or fails a download queued after it.
+  ends in success and only logs, so it never holds back or fails a download queued after it. Its
+  output says how the check went (`EngineUpdateResult`: updated with the version, up to date, or not
+  checked), for the About sheet.
 
 ## Permissions
 
@@ -265,7 +299,9 @@ decision in `work/decisions/`.
 
 - **JVM unit tests:** `LinkParser`, `VideoJson`, `FormatPicker`, `FailureClassifier`, `FileNamer`,
   `ProgressTracker`, `Container`, `DownloadProgress`, `throttleLatest` (in virtual time),
-  `EngineUpdateRule`, `DownloadData`, `ChoicesFile` and `MainViewModel`'s state mapping. No network. `FormatPicker`
+  `EngineUpdateRule`, `DownloadData`, `UpdateWorker`'s output, `ChoicesFile`, the choice sheet's
+  `durationText` and `MainViewModel` (every behaviour row that is not pure UI, against a fake
+  `Downloads`). No network. `FormatPicker`
   runs against trimmed format lists per site in `app/src/test/resources/formats/` (format fields
   only: neutral IDs and titles, no URLs).
 - **Engine probe:** an instrumented test, `EngineProbeTest`, that runs real extractions and

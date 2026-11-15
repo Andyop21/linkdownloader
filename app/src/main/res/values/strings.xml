@@ -23,6 +23,64 @@
     <string name="notification_failed_title">Couldn\'t download</string>
     <string name="notification_choose_title">Choose which videos to save</string>
 
+    <!-- The screen (docs/product.md § The screen) -->
+    <string name="header_about_action">Show app info</string>
+    <string name="bar_label">Video link</string>
+    <string name="bar_placeholder">https://…</string>
+    <string name="paste">Paste</string>
+
+    <!-- Status card -->
+    <string name="status_idle_title">Ready when you are</string>
+    <string name="status_idle_detail">Copy a video link, then tap Paste.</string>
+    <string name="status_no_link_clipboard_title">No link on the clipboard</string>
+    <string name="status_no_link_clipboard_detail">Copy a video link first, then tap Paste again.</string>
+    <string name="status_no_link_bar_title">That doesn\'t look like a link</string>
+    <string name="status_no_link_bar_detail">Links start with https:// — try pasting one.</string>
+    <string name="status_preparing_title">Getting the video ready…</string>
+    <string name="status_preparing_detail">Checking the link</string>
+    <string name="status_choosing_title">This post has several videos</string>
+    <string name="status_choosing_detail">Pick the ones you\'d like to keep.</string>
+    <string name="status_downloading_title">Downloading…</string>
+    <string name="status_downloading">Downloading</string>
+    <string name="status_saving">Saving to Downloads</string>
+    <string name="status_position">%1$d of %2$d</string>
+    <string name="status_percent">%1$d%%</string>
+    <string name="status_done_title">Saved to Downloads</string>
+    <plurals name="status_done_videos_title">
+        <item quantity="one">%d video saved to Downloads</item>
+        <item quantity="other">%d videos saved to Downloads</item>
+    </plurals>
+    <plurals name="status_done_not_saved">
+        <item quantity="one">%d couldn\'t be saved.</item>
+        <item quantity="other">%d couldn\'t be saved.</item>
+    </plurals>
+    <string name="status_failed_title">Couldn\'t download</string>
+    <string name="status_cancel">Cancel</string>
+    <string name="status_open">Open</string>
+    <string name="open_no_app">No app on this phone can play this video. It\'s safe in Downloads.</string>
+
+    <!-- Choice sheet (docs/product.md B11) -->
+    <string name="choice_title_fallback">Choose videos</string>
+    <string name="choice_hint">Tap a video to pick it or leave it out.</string>
+    <string name="choice_select_all">Select all</string>
+    <string name="choice_download">Download (%1$d)</string>
+    <string name="choice_video">Video %1$d</string>
+    <string name="choice_video_with_length">Video %1$d, %2$s</string>
+    <string name="choice_selected">selected</string>
+    <string name="choice_not_selected">not selected</string>
+
+    <!-- About sheet (docs/product.md B10) -->
+    <string name="about_app_version">App version</string>
+    <string name="about_engine_version">yt-dlp version</string>
+    <string name="about_version_loading">…</string>
+    <string name="about_version_unknown">Unknown</string>
+    <string name="about_update">Update yt-dlp</string>
+    <string name="about_checking">Checking…</string>
+    <string name="about_up_to_date">Up to date</string>
+    <string name="about_updated">Updated to %1$s</string>
+    <string name="about_updated_no_version">Updated</string>
+    <string name="about_not_checked">Couldn\'t check right now. Try again when you\'re online.</string>
+
     <!-- Failure reasons (docs/product.md § Failure reasons) -->
     <string name="failure_no_internet">No internet right now. Try again when you\'re back online.</string>
     <string name="failure_not_supported">This link doesn\'t lead to a video I can download.</string>

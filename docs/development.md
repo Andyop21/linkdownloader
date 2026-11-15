@@ -100,23 +100,29 @@ the device.
 Use public videos only, and never commit the links you probed with. Sites rate-limit repeated
 requests (Instagram did after eight extractions in eleven minutes), so probe sparingly.
 
-## Background downloads by hand
+## Trying the screen by hand
 
-Debug builds contain `DebugDownloadActivity`, which queues downloads and yt-dlp updates from `adb`
-and lists the downloads WorkManager knows, so the worker and its notifications can be checked
-without the screen. It is in `app/src/debug` only; release builds do not have it.
+Install the debug build (`./gradlew installDebug`) and use the screen. Over `adb`, a link can be
+typed into the bar and sent with the keyboard's action key, without touching the clipboard:
 
 ```bash
 P=io.github.andyop21.linkdownloader
-adb shell pm grant $P android.permission.POST_NOTIFICATIONS        # the screen asks for it from P05 on
-adb shell am start -f 0x10008000 -n $P/.debug.DebugDownloadActivity --es link "https://example.com/v/1"
-adb shell am start -f 0x10008000 -n $P/.debug.DebugDownloadActivity --es link "<post link>" --es select all   # or 0,2
-adb shell am start --activity-single-top -n $P/.debug.DebugDownloadActivity --es update now      # or due
+adb shell am start -n $P/.MainActivity
+adb shell input tap <x> <y>                                   # the bar
+adb shell "input text 'https://example.com/v/1'"              # quote links with ? or &
+adb shell input keyevent KEYCODE_ENTER                        # Go
 ```
 
-`-f 0x10008000` starts the activity in a fresh task, so the extras always arrive. Start a download
-while the activity is on screen, then leave it with Home: Android refuses to start a foreground
-service for an app in the background. Read the workers' lines with
+`uiautomator dump` lists the screen's texts and bounds (in Git Bash, prefix the command with
+`MSYS_NO_PATHCONV=1` so `/sdcard/...` is not rewritten). To see the notification permission request
+again, revoke it and clear its flags, then reinstall or clear the app's data (the app asks only once):
+
+```bash
+adb shell pm revoke $P android.permission.POST_NOTIFICATIONS
+adb shell pm clear-permission-flags $P android.permission.POST_NOTIFICATIONS user-set user-fixed
+```
+
+Read the workers' lines with
 `adb logcat -d -s DownloadWorker UpdateWorker VideoDownloader WM-WorkerWrapper`.
 
 To lose the network for this app only (aeroplane mode would also cut wireless debugging):

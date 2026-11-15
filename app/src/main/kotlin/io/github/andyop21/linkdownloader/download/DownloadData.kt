@@ -15,8 +15,12 @@ sealed interface DownloadResult {
      */
     data class Saved(val videos: List<Video>, val savedCount: Int, val failed: Int) : DownloadResult
 
-    /** The link is a post with several videos; the choices are in the JSON file at [choicesFile] ([ChoicesFile.read]). */
-    data class Choose(val title: String, val choicesFile: String) : DownloadResult
+    /**
+     * [link] is a post with several videos; the choices are in the JSON file at [choicesFile]
+     * ([ChoicesFile.read]). The link travels with the result so the chosen videos can be queued
+     * even when the screen did not start the first job (it was opened from the notification).
+     */
+    data class Choose(val link: String, val title: String, val choicesFile: String) : DownloadResult
 
     data class Failed(val reason: FailureReason) : DownloadResult
 }
@@ -114,8 +118,9 @@ object DownloadData {
         error("an empty saved result cannot exceed the size cap")
     }
 
-    fun choose(title: String, choicesFile: String): Data = Data.Builder()
+    fun choose(link: String, title: String, choicesFile: String): Data = Data.Builder()
         .putString(KEY_OUTCOME, OUTCOME_CHOOSE)
+        .putString(KEY_LINK, link)
         .putString(KEY_TITLE, title.clipped(MAX_TITLE_CHARS))
         .putString(KEY_CHOICES_FILE, choicesFile)
         .build()
@@ -137,7 +142,11 @@ object DownloadData {
             }
             DownloadResult.Saved(videos, data.getInt(KEY_SAVED, videos.size), data.getInt(KEY_FAILED, 0))
         }
-        OUTCOME_CHOOSE -> data.getString(KEY_CHOICES_FILE)?.let { DownloadResult.Choose(data.getString(KEY_TITLE).orEmpty(), it) }
+        OUTCOME_CHOOSE -> {
+            val link = data.getString(KEY_LINK)
+            val file = data.getString(KEY_CHOICES_FILE)
+            if (link.isNullOrBlank() || file == null) null else DownloadResult.Choose(link, data.getString(KEY_TITLE).orEmpty(), file)
+        }
         OUTCOME_FAILED -> DownloadResult.Failed(
             FailureReason.entries.firstOrNull { it.name == data.getString(KEY_REASON) } ?: FailureReason.Unknown,
         )

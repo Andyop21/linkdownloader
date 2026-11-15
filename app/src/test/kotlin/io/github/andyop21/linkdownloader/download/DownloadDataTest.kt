@@ -77,8 +77,8 @@ class DownloadDataTest {
     @Test
     fun `choose and failed round-trip`() {
         assertEquals(
-            DownloadResult.Choose("Post", "/cache/choices/x.json"),
-            DownloadData.resultOf(DownloadData.choose("Post", "/cache/choices/x.json")),
+            DownloadResult.Choose("https://example.com/p/1", "Post", "/cache/choices/x.json"),
+            DownloadData.resultOf(DownloadData.choose("https://example.com/p/1", "Post", "/cache/choices/x.json")),
         )
         FailureReason.entries.forEach { reason ->
             assertEquals(DownloadResult.Failed(reason), DownloadData.resultOf(DownloadData.failed(reason)))
