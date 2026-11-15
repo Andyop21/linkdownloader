@@ -43,7 +43,8 @@ Command-line builds also need the SDK path: `local.properties` with
 | `./gradlew lintDebug` | Runs Android lint |
 | `./gradlew installDebug` | Installs the debug APK on the connected device or running emulator |
 | `./gradlew assembleDebug testDebugUnitTest lintDebug` | All checks from the definition of done, in one run |
-| `./gradlew assembleRelease` | Builds the release APK; unsigned until P07 adds signing (`keystore.properties`, below) |
+| `./gradlew assembleRelease` | Builds the signed, shrunk release APK into `app/build/outputs/apk/release/` (needs `keystore.properties`, below) |
+| `adb install -r app/build/outputs/apk/release/app-release.apk` | Installs (or updates) the release APK on the connected phone |
 
 Lint treats every warning as an error, except the dependency-freshness checks (`GradleDependency`,
 `NewerVersionAvailable`, `AndroidGradlePluginVersion`). Kotlin compiler warnings are errors too.
@@ -151,6 +152,41 @@ Release builds are `arm64-v8a` only and need a real phone (or an ARM emulator).
 A signed release APK uses a keystore kept **outside** the repository. Its path and passwords go in
 `keystore.properties` at the repository root, which is ignored. Never commit a keystore, a
 `keystore.properties`, or a password.
+
+Create the keystore once, outside the repository, with the JDK's `keytool` (Android Studio's own
+JDK has it in `jbr/bin`). It asks for a password; with the default PKCS12 format the key uses the
+same one. `-dname "CN=linkdownloader"` keeps a personal name out of the certificate, which anyone
+can read from the APK:
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\keystores" | Out-Null
+keytool -genkeypair -v -keystore "$env:USERPROFILE\keystores\linkdownloader-release.jks" `
+  -alias linkdownloader -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=linkdownloader"
+```
+
+Then write `keystore.properties` at the repository root (`storeFile` may be absolute, or relative to
+the repository root):
+
+```properties
+storeFile=C:/Users/<you>/keystores/linkdownloader-release.jks
+storePassword=<password>
+keyAlias=linkdownloader
+keyPassword=<password>
+```
+
+Without the file, with a key missing from it, or with a `storeFile` that does not exist,
+`assembleRelease` stops at `checkReleaseSigning` with a message saying which; it never produces an
+unsigned APK. Debug builds do not need the file. Keep a backup of the keystore and its password:
+an APK signed with another key cannot be installed over the existing app.
+
+The release build runs R8 (`isMinifyEnabled`, `isShrinkResources`) with the rules in
+`app/proguard-rules.pro`, and packages `arm64-v8a` only.
+
+## Versions
+
+`versionName` is `major.minor.patch`; `versionCode = major*10000 + minor*100 + patch` (1.0.0 is
+`100`, 1.2.3 is `10203`). Both are set in `app/build.gradle.kts`. Raise them together for every
+release APK, and move *Unreleased* in `CHANGELOG.md` under the new version.
 
 ## Workflow scripts
 
