@@ -100,6 +100,35 @@ the device.
 Use public videos only, and never commit the links you probed with. Sites rate-limit repeated
 requests (Instagram did after eight extractions in eleven minutes), so probe sparingly.
 
+## Background downloads by hand
+
+Debug builds contain `DebugDownloadActivity`, which queues downloads and yt-dlp updates from `adb`
+and lists the downloads WorkManager knows, so the worker and its notifications can be checked
+without the screen. It is in `app/src/debug` only; release builds do not have it.
+
+```bash
+P=io.github.andyop21.linkdownloader
+adb shell pm grant $P android.permission.POST_NOTIFICATIONS        # the screen asks for it from P05 on
+adb shell am start -f 0x10008000 -n $P/.debug.DebugDownloadActivity --es link "https://example.com/v/1"
+adb shell am start -f 0x10008000 -n $P/.debug.DebugDownloadActivity --es link "<post link>" --es select all   # or 0,2
+adb shell am start --activity-single-top -n $P/.debug.DebugDownloadActivity --es update now      # or due
+```
+
+`-f 0x10008000` starts the activity in a fresh task, so the extras always arrive. Start a download
+while the activity is on screen, then leave it with Home: Android refuses to start a foreground
+service for an app in the background. Read the workers' lines with
+`adb logcat -d -s DownloadWorker UpdateWorker VideoDownloader WM-WorkerWrapper`.
+
+To lose the network for this app only (aeroplane mode would also cut wireless debugging):
+
+```bash
+adb shell cmd connectivity set-chain3-enabled true
+adb shell cmd connectivity set-package-networking-enabled false $P    # true to restore
+adb shell cmd connectivity set-chain3-enabled false
+```
+
+In Git Bash, set `MSYS_NO_PATHCONV=1` before `adb` commands with device paths such as `/sdcard`.
+
 ## Emulator
 
 Debug builds include `x86_64`, so the app runs on a standard Android Studio emulator on a PC.

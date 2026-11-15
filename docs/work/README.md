@@ -26,3 +26,4 @@ Numbers are three digits, assigned in order, never reused. A bug stays in `bugs/
 | [DEC-003](decisions/DEC-003-engine-probe-results.md) | Engine probe results and the picker rules for P03 |
 | [DEC-004](decisions/DEC-004-serialization-and-coroutines.md) | kotlinx.serialization for yt-dlp's JSON, kotlinx.coroutines declared directly |
 | [DEC-005](decisions/DEC-005-posts-with-several-videos.md) | Posts with several videos: offer a choice, then download the chosen ones; Reddit dropped |
+| [DEC-006](decisions/DEC-006-workmanager-background-downloads.md) | WorkManager for background downloads; the yt-dlp update never blocks or fails a download |

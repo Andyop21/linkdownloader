@@ -1,4 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Link Downloader</string>
+
+    <!-- Notifications (docs/product.md B8) -->
+    <string name="notification_channel_downloads">Downloads</string>
+    <string name="notification_channel_downloads_description">Progress and results of video downloads</string>
+    <string name="notification_getting_ready">Getting ready…</string>
+    <string name="notification_checking_link">Checking the link</string>
+    <string name="notification_downloading">Downloading</string>
+    <string name="notification_saving">Saving to Downloads</string>
+    <string name="notification_position">%1$d of %2$d</string>
+    <string name="notification_cancel">Cancel</string>
+    <string name="notification_saved_title">Saved to Downloads</string>
+    <plurals name="notification_videos_saved">
+        <item quantity="one">%d video saved</item>
+        <item quantity="other">%d videos saved</item>
+    </plurals>
+    <plurals name="notification_videos_not_saved">
+        <item quantity="one">%d couldn\'t be saved</item>
+        <item quantity="other">%d couldn\'t be saved</item>
+    </plurals>
+    <string name="notification_failed_title">Couldn\'t download</string>
+    <string name="notification_choose_title">Choose which videos to save</string>
+
+    <!-- Failure reasons (docs/product.md § Failure reasons) -->
+    <string name="failure_no_internet">No internet right now. Try again when you\'re back online.</string>
+    <string name="failure_not_supported">This link doesn\'t lead to a video I can download.</string>
+    <string name="failure_unavailable">This video isn\'t available to download.</string>
+    <string name="failure_needs_login">This site wants you logged in, so I can\'t grab this one.</string>
+    <string name="failure_unknown">Something went wrong. Try again in a moment.</string>
 </resources>

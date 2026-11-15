@@ -40,15 +40,21 @@ One Gradle module, `app`. Packages under `io.github.andyop21.linkdownloader`:
 
 | Package | Holds |
 |---|---|
-| (root) | `LinkDownloaderApp` (initialises youtubedl-android once, schedules the yt-dlp update) and `MainActivity` |
+| (root) | `LinkDownloaderApp` (initialises youtubedl-android once, creates the notification channel, schedules the yt-dlp update) and `MainActivity` |
 | `ui` | `MainScreen`, `MainViewModel`, `UiState`, the mascot and the About sheet |
 | `ui.theme` | Colours, type, shapes and motion |
 | `link` | `LinkParser`: finds the first `http`/`https` link in a piece of text. Pure Kotlin. |
-| `download` | The download pipeline (below), `DownloadWorker`, `UpdateWorker` and the notifications |
+| `download` | The download pipeline (below), `DownloadWorker`, `UpdateWorker`, the notifications and `DownloadQueue` (§ *Background work*) |
 
 Dependencies point inward: `ui` uses `link` and `download`; `link` uses nothing. Pure-Kotlin parts
 (`LinkParser`, `VideoJson`, `FormatPicker`, `FailureClassifier`, `FileNamer`, `ProgressTracker`,
-`Container`) take no Android types, so they are tested on the JVM.
+`Container`, `DownloadProgress`, `throttleLatest`, `EngineUpdateRule`, `ChoicesFile`) take no
+Android types, so they are tested on the JVM; so is `DownloadData`, which only uses WorkManager's
+`Data`.
+
+Debug builds add one more activity, `debug.DebugDownloadActivity` in `app/src/debug`, a trigger
+for checking background downloads from `adb` ([development.md](development.md)). Release builds do
+not contain it.
 
 ## Download pipeline
 
@@ -168,25 +174,58 @@ fresh extraction is *unknown*. Raw error text goes to Logcat only (tags `YtDlp` 
 
 ## Background work
 
+Why: [DEC-006](work/decisions/DEC-006-workmanager-background-downloads.md).
+
 - **Unique chain.** Downloads and yt-dlp updates are enqueued on one unique work name, `engine`,
-  with `APPEND_OR_REPLACE`, so an update never replaces the yt-dlp file under a running download.
-  Downloads carry the tag `download`; the ViewModel observes only those.
-- **DownloadWorker** calls `setForeground` at once, with a `dataSync` foreground service type and a
-  low-importance progress notification that has a Cancel action. The finish notification opens the
-  (first) video. Its input is the link and, for a post with several videos, the chosen positions.
-  A `ChooseVideos` outcome ends the work successfully with the choices written to a JSON file in
-  the cache and only that file's path in the output `Data` (WorkManager caps `Data` at 10 KB, and
-  thumbnail URLs are long); it posts no notification while the app is open, and a "Choose which
-  videos" notification that opens the app when it is not.
-- **UpdateWorker** calls `updateYoutubeDL(STABLE)`. It is enqueued at app start at most once a day,
-  needs a network connection, and fails silently. The About sheet can enqueue it on demand.
+  with `APPEND_OR_REPLACE`, so an update never replaces the yt-dlp file under a running download,
+  and downloads run one at a time. Downloads carry the tag `download`; the ViewModel observes only
+  those. A failed or cancelled job ends its chain: the next job starts a new one and WorkManager
+  deletes the old chain's finished work. Cancelling a download also cancels an update queued after
+  it.
+- **`DownloadQueue`** is the API the screen uses: `startDownload(link, selection)` (returns the
+  work ID), `cancel(id)`, `observeDownloads()` (a `Flow` of the `download` work), `updateEngineIfDue()`
+  (called from `LinkDownloaderApp.onCreate`), `updateEngineNow()` and `engineVersion()` (the stored
+  version after an update, else `yt-dlp --version`).
+- **`DownloadData`** holds the keys and turns WorkManager's `Data` into types: the input (link and
+  chosen positions), the progress (`DownloadProgress`: stage *preparing*, *downloading* or
+  *saving*, title, position and count, overall fraction once known) and the result
+  (`DownloadResult`: `Saved` with each video's uri, file name and title and the `failed` count,
+  `Choose` with the post's title and the choices file, or `Failed` with the `FailureReason`).
+  Titles are cut to 200 characters. `Data` is capped at 10 KB: should a post's saved list not fit,
+  its last videos are left out of the list but still counted.
+- **DownloadWorker** (`CoroutineWorker`) calls `setForeground` at once, with a `dataSync`
+  foreground service type and the ongoing notification; if Android refuses (the work started while
+  the app was in the background), it goes on as ordinary work. It folds `VideoDownloader`'s events
+  into a `DownloadProgress` and publishes it to `setProgress` and the notification at most every
+  250 ms (`throttleLatest`), always ending on the latest state. Stopping the work cancels the
+  coroutine, which `VideoDownloader` turns into a clean cancel. A failure ends in
+  `Result.failure`, never a retry. A `ChooseVideos` outcome ends successfully with the choices
+  written to `cache/choices/<work id>.json` (`ChoicesFile`, which keeps only the newest list) and
+  only that path in the output, because thumbnail URLs are long.
+- **Notifications** (`Notifications`), one low-importance channel, "Downloads", created at app
+  start. IDs are fixed, as one download runs at a time:
+
+  | ID | Notification | Tap |
+  |---|---|---|
+  | 1 | Ongoing: the title (or "Getting ready…"), the stage, "2 of 3" for a post, the progress (indeterminate until known) and **Cancel** (`createCancelPendingIntent`) | Opens the app |
+  | 2 | Result: "Saved to Downloads" with the file name, or "3 videos saved" (and how many could not be); or "Couldn't download" with the friendly reason | Plays the (first) video (`ACTION_VIEW`, read permission granted); a failure opens the app |
+  | 3 | "Choose which videos to save", only when no activity of the app is on screen; removed when the next download starts | Opens the app with the extra `EXTRA_CHOOSE_WORK_ID` (the work ID) |
+
+  Results auto-cancel on tap. Notifications are posted only when `POST_NOTIFICATIONS` is granted;
+  the foreground service runs either way.
+- **UpdateWorker** calls `updateYoutubeDL(STABLE)` and records the time of the last successful
+  check. `updateEngineIfDue()` enqueues it when that is a day old or more (`EngineUpdateRule`), and
+  the worker checks the rule again when it runs, unless forced by `updateEngineNow()`. It has no
+  network constraint: offline it skips and records nothing, so the next start tries again. It always
+  ends in success and only logs, so it never holds back or fails a download queued after it.
 
 ## Permissions
 
 `INTERNET`, `ACCESS_NETWORK_STATE`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`, and
-`POST_NOTIFICATIONS` (asked once, the first time a download starts, on API 33+; a refusal does not
-block downloading). No storage permission. WorkManager's `SystemForegroundService` is declared with
-`foregroundServiceType="dataSync"`.
+`POST_NOTIFICATIONS` (asked once by the screen, the first time a download starts, on API 33+; a
+refusal does not block downloading, it only hides the notifications). No storage permission.
+WorkManager's `SystemForegroundService` is merged into the manifest with
+`foregroundServiceType="dataSync"` (`tools:node="merge"`).
 
 ## Look and feel
 
@@ -217,15 +256,16 @@ recorded here. Dynamic colour is off: the app keeps its own palette.
 ## Dependencies
 
 Keep them few: AndroidX core, activity-compose, lifecycle, Compose BOM (Material 3),
-WorkManager, kotlinx.serialization (with its Kotlin compiler plugin), kotlinx.coroutines,
-youtubedl-android `library`, and test libraries. Every one is
+WorkManager (`work-runtime`), kotlinx.serialization (with its Kotlin compiler plugin),
+kotlinx.coroutines, youtubedl-android `library`, and test libraries (JUnit, kotlinx-coroutines-test). Every one is
 pinned in `gradle/libs.versions.toml`. Adding a library or bumping a major version is recorded as a
 decision in `work/decisions/`.
 
 ## Tests
 
 - **JVM unit tests:** `LinkParser`, `VideoJson`, `FormatPicker`, `FailureClassifier`, `FileNamer`,
-  `ProgressTracker`, `Container` and `MainViewModel`'s state mapping. No network. `FormatPicker`
+  `ProgressTracker`, `Container`, `DownloadProgress`, `throttleLatest` (in virtual time),
+  `EngineUpdateRule`, `DownloadData`, `ChoicesFile` and `MainViewModel`'s state mapping. No network. `FormatPicker`
   runs against trimmed format lists per site in `app/src/test/resources/formats/` (format fields
   only: neutral IDs and titles, no URLs).
 - **Engine probe:** an instrumented test, `EngineProbeTest`, that runs real extractions and

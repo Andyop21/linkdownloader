@@ -1,8 +1,6 @@
 package io.github.andyop21.linkdownloader.download
 
 import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
@@ -11,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.FileDescriptor
 import java.io.FileOutputStream
@@ -34,6 +33,7 @@ sealed interface DownloadEvent {
 data class SavedVideo(val uri: Uri, val fileName: String, val title: String)
 
 /** One video of a post with several, offered for the user to choose. [index] is what [VideoDownloader.download] takes back. */
+@Serializable
 data class VideoChoice(val index: Int, val title: String, val thumbnail: String?, val durationSeconds: Double?)
 
 /** How a download ended. A cancelled download ends in a [CancellationException] instead. */
@@ -330,11 +330,7 @@ class VideoDownloader(
         }
     }
 
-    private fun isOnline(): Boolean {
-        val connectivity = appContext.getSystemService(ConnectivityManager::class.java) ?: return true
-        val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-    }
+    private fun isOnline(): Boolean = appContext.isOnline()
 
     private companion object {
         const val TAG = "VideoDownloader"
