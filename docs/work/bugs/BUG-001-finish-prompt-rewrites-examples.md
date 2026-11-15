@@ -3,7 +3,7 @@ id: BUG-001
 title: finish-prompt.sh rewrites the example lines that name the finished prompt
 status: fixed
 found: 2026-11-15
-fixed-by:
+fixed-by: 845fdfe
 ---
 
 # BUG-001 — finish-prompt.sh rewrites the example lines that name the finished prompt
