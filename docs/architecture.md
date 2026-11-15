@@ -14,7 +14,7 @@ exists, the code and this page must agree.
 | Background work | WorkManager, as a foreground worker with a notification |
 | Saving files | MediaStore `Downloads` collection |
 | JSON | kotlinx.serialization |
-| Build | Gradle (Kotlin DSL) with a version catalog at `gradle/libs.versions.toml` |
+| Build | Gradle (Kotlin DSL) with a version catalog at `gradle/libs.versions.toml`; Android Gradle Plugin 9 with its built-in Kotlin (no `kotlin-android` plugin) and the Kotlin Compose compiler plugin, whose version sets the Kotlin version; Java and Kotlin toolchain 17 |
 
 Why: [DEC-001](work/decisions/DEC-001-kotlin-compose-ytdlp.md) (stack) and
 [DEC-002](work/decisions/DEC-002-no-ffmpeg-merge-with-mediamuxer.md) (no ffmpeg).
@@ -24,9 +24,11 @@ Why: [DEC-001](work/decisions/DEC-001-kotlin-compose-ytdlp.md) (stack) and
 - Application ID and namespace `io.github.andyop21.linkdownloader`; app label "Link Downloader".
 - `minSdk 29` (Android 10): from 29 on, saving to `Downloads/` through MediaStore needs no storage
   permission.
-- `targetSdk` and `compileSdk`: the latest stable API level, pinned in the version catalog.
+- `targetSdk` and `compileSdk`: the latest stable API level the Android Gradle Plugin supports
+  (37), pinned in the version catalog together with `minSdk`.
 - ABIs: release builds `arm64-v8a` only; debug builds `arm64-v8a` and `x86_64` so the app also runs
-  on a PC emulator.
+  on a PC emulator. Lint's `ChromeOsAbiSupport` check is suppressed on that one release line, since
+  ChromeOS is not a target.
 - youtubedl-android runs Python and QuickJS as executables from the native library directory, so
   the app sets `android:extractNativeLibs="true"` and `packaging.jniLibs.useLegacyPackaging = true`.
 

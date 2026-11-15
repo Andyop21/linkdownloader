@@ -20,7 +20,7 @@ See [docs/product.md](docs/product.md) for the full behaviour.
 
 ## Building
 
-Requires Android Studio (JDK 17) and the Android SDK.
+Requires Android Studio (or any JDK 17+) and the Android SDK.
 
 ```bash
 ./gradlew assembleDebug      # build the debug APK

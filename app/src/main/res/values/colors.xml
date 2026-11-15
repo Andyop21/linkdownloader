@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window background before Compose draws; matches the theme's background token. -->
+    <color name="window_background">#FFF8F3</color>
+    <!-- Placeholder launcher icon; P06 replaces it with the mascot. -->
+    <color name="ic_launcher_background">#7C6CF2</color>
+</resources>

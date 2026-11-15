@@ -2,7 +2,10 @@
 
 ## Setup
 
-1. Install Android Studio. It bundles JDK 17 and the Android SDK manager.
+1. Install Android Studio. It bundles a JDK (21) and the Android SDK manager. Gradle 9 needs
+   JDK 17 or newer to run; the app itself compiles with a JDK 17 toolchain, which Gradle downloads
+   on first build if none is installed (foojay resolver, `settings.gradle.kts`). AGP installs a
+   missing SDK platform on first build too.
 2. Clone the repository and switch to the work branch:
 
    ```bash
@@ -18,6 +21,20 @@
 ## Commands
 
 Run from the repository root. In PowerShell or cmd use `.\gradlew.bat` instead of `./gradlew`.
+Outside Android Studio, point `JAVA_HOME` at a JDK 17+ first (for example the one Android Studio
+bundles) if `java -version` reports something older:
+
+```bash
+export JAVA_HOME="/c/Program Files/Android/Android Studio/jbr"      # Git Bash
+```
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"      # PowerShell
+```
+
+Command-line builds also need the SDK path: `local.properties` with
+`sdk.dir=C\:/Users/<you>/AppData/Local/Android/Sdk` (Android Studio writes it on sync), or
+`ANDROID_HOME` set.
 
 | Command | Does |
 |---|---|
@@ -26,9 +43,10 @@ Run from the repository root. In PowerShell or cmd use `.\gradlew.bat` instead o
 | `./gradlew lintDebug` | Runs Android lint |
 | `./gradlew installDebug` | Installs the debug APK on the connected device or running emulator |
 | `./gradlew assembleDebug testDebugUnitTest lintDebug` | All checks from the definition of done, in one run |
-| `./gradlew assembleRelease` | Builds the signed release APK (needs `keystore.properties`, below) |
+| `./gradlew assembleRelease` | Builds the release APK; unsigned until P07 adds signing (`keystore.properties`, below) |
 
-These commands work once the app has been scaffolded.
+Lint treats every warning as an error, except the dependency-freshness checks (`GradleDependency`,
+`NewerVersionAvailable`, `AndroidGradlePluginVersion`). Kotlin compiler warnings are errors too.
 
 ## Engine probe
 
