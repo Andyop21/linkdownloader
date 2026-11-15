@@ -19,7 +19,8 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   tray while the link is read, fills a ring with the percentage inside while downloading, turns
   green with a check and a ripple when saved, and shakes once on a failure; all of it keeps still
   when the phone's animations are off. The link field and **Paste link** sit together at the
-  bottom, within reach of the thumb, and a tap on empty space puts the keyboard away. An app icon (with a
+  bottom, within reach of the thumb, and stay whole above the keyboard while typing (the orb
+  shrinks to make room); a tap on empty space puts the keyboard away. An app icon (with a
   themed-icon layer) and notification icon showing an arrow into a tray.
 - The link field has a clear button, and empties itself when a video is saved or a download is
   cancelled, ready for the next link.

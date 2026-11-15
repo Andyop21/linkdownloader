@@ -56,7 +56,7 @@
         <item quantity="one">%d couldn\'t be saved.</item>
         <item quantity="other">%d couldn\'t be saved.</item>
     </plurals>
-    <string name="status_already_detail">Already saved. You downloaded this link a moment ago.</string>
+    <string name="status_already_detail">Already in your Downloads.</string>
     <string name="status_cancel">Cancel</string>
     <string name="status_open">Open</string>
     <string name="status_retry">Try again</string>

@@ -22,7 +22,8 @@ One screen, centred, top to bottom:
 5. **The Paste link button** under the bar, at the bottom of the screen where the thumb rests: full
    width and the obvious thing to tap.
 
-A tap on empty space puts the keyboard away.
+A tap on empty space puts the keyboard away. While the keyboard is open, the orb shrinks and the
+detail line folds away, so the bar and **Paste link** stay whole above the keyboard.
 
 No menus, no settings screen, no history list, no second screen.
 

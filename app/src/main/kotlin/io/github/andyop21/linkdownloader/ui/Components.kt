@@ -40,8 +40,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +62,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -145,9 +149,16 @@ fun LinkBar(
     )
     val label = stringResource(R.string.bar_label)
     val ringColor = colors.primary.copy(alpha = 0.24f)
+    // The field keeps its own cursor while the user types. A link set from outside (Paste, Go) shows
+    // from its start, "youtube.com/…", not scrolled to its tail.
+    var local by remember { mutableStateOf(TextFieldValue(text)) }
+    val value = if (local.text == text) local else TextFieldValue(text, TextRange.Zero)
     BasicTextField(
-        value = text,
-        onValueChange = onTextChange,
+        value = value,
+        onValueChange = {
+            local = it
+            if (it.text != text) onTextChange(it.text)
+        },
         modifier = modifier
             .fillMaxWidth()
             .semantics { contentDescription = label },

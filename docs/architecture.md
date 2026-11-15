@@ -357,7 +357,13 @@ WCAG. Dynamic colour is off: the app keeps its own palette.
   free space, a little above centre (free space split 0.8 : 1); then the bar (56 dp, 1 dp control
   edge, 1.5 dp blue edge and a soft 3 dp ring with focus, link icon, clear button while it holds
   text) and, 12 dp under it, the 56 dp **Paste link** capsule. A tap on empty space clears focus,
-  which puts the keyboard away.
+  which puts the keyboard away. While the keyboard is open (`WindowInsets.isImeVisible`) the hero
+  turns compact over 320 ms: the orb scales to 56 %, the detail line folds away, the caption gives
+  up its reserved height and the free space above and below the hero drops to 16 dp, so the field
+  and **Paste link** sit whole, 16 dp above the keyboard; should even that not fit, the page
+  scrolls to its end. A link set from outside (Paste, Go) shows from its start; the field keeps its
+  own cursor only while the user types. The orb shows the percentage from 1 %; before that it keeps
+  the dropping arrow.
 - **Icon:** adaptive launcher icon with a white arrow into a tray on blue `#0063F3`
   (`drawable/ic_launcher_foreground.xml`), the same strokes as the monochrome layer for themed
   icons (`ic_launcher_monochrome.xml`) and as the white notification icon (`ic_stat_download.xml`).

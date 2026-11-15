@@ -1,21 +1,25 @@
 package io.github.andyop21.linkdownloader.ui
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
@@ -118,8 +122,8 @@ private val Status.glyph: Glyph
         Status.Idle -> Glyph.Ready
         is Status.NoLink -> Glyph.Empty
         Status.Preparing -> Glyph.Fetching
-        is Status.Downloading -> if (progress == null) Glyph.Fetching else Glyph.Percent
-        is Status.Saving -> if (progress == null) Glyph.Fetching else Glyph.Percent
+        is Status.Downloading -> if (shownPercent(progress) == null) Glyph.Fetching else Glyph.Percent
+        is Status.Saving -> if (shownPercent(progress) == null) Glyph.Fetching else Glyph.Percent
         is Status.Choosing -> Glyph.Grid
         is Status.Done, is Status.AlreadySaved -> Glyph.Check
         is Status.Failed -> Glyph.Alert
@@ -137,14 +141,15 @@ class StatusActions(
 /**
  * The centre of the screen (docs/product.md § The screen): the orb, which shows the state at a
  * glance, and under it a one-line status, a detail line and the button that fits (**Cancel**,
- * **Open**, **Try again**, **Download again**).
+ * **Open**, **Try again**, **Download again**). [compact] while the keyboard is open: the orb
+ * shrinks and the detail folds away, so the field and **Paste link** stay clear above the keyboard.
  */
 @Composable
-fun StatusHero(status: Status, actions: StatusActions, modifier: Modifier = Modifier) {
+fun StatusHero(status: Status, actions: StatusActions, modifier: Modifier = Modifier, compact: Boolean = false) {
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Orb(status)
+        Orb(status, compact)
         Spacer(Modifier.height(Space.s))
-        Caption(status, actions)
+        Caption(status, actions, compact)
     }
 }
 
@@ -160,6 +165,9 @@ private val RingRadius = 76.dp
 /** The glyph's size inside the disc. */
 private val GlyphSize = 46.dp
 
+/** The orb's size while the keyboard is open, as a share of its full size. */
+private const val CompactScale = 0.56f
+
 /**
  * A disc in the status's colour, lit from the top left, on a soft glow of the same colour. Ready,
  * a halo breathes out from it. Working, a ring fills around it with the progress, and the
@@ -168,7 +176,7 @@ private val GlyphSize = 46.dp
  * download, it turns red or amber and shakes once. Still when motion is off.
  */
 @Composable
-private fun Orb(status: Status) {
+private fun Orb(status: Status, compact: Boolean) {
     val colors = AppTheme.colors
     val reduced = LocalReducedMotion.current
     val tone = status.tone
@@ -184,6 +192,11 @@ private fun Orb(status: Status) {
     val filled by animateFloatAsState(progress ?: 0f, motion(Motion.GLIDE, Motion.EaseOut), label = "ring fill")
     val track = colors.track
     val glowAlpha = if (colors.dark) 0.22f else 0.14f
+    val k by animateFloatAsState(
+        targetValue = if (compact) CompactScale else 1f,
+        animationSpec = motion(Motion.SWAP, Motion.Standard),
+        label = "orb size",
+    )
 
     val loop = rememberInfiniteTransition(label = "orb")
     val halo by loop.animateFloat(
@@ -222,15 +235,15 @@ private fun Orb(status: Status) {
     val progressInfo = if (determinate) ProgressBarRangeInfo(progress, 0f..1f) else ProgressBarRangeInfo.Indeterminate
     Box(
         modifier = Modifier
-            .size(OrbBox)
+            .size(OrbBox * k)
             .clearAndSetSemantics { if (running) progressBarRangeInfo = progressInfo }
             .graphicsLayer {
                 val p = shake.value
                 translationX = if (p < 1f) sin(p * 6f * PI.toFloat()) * 8.dp.toPx() * (1f - p) else 0f
             }
             .drawBehind {
-                val disc = DiscRadius.toPx()
-                val glow = 150.dp.toPx()
+                val disc = DiscRadius.toPx() * k
+                val glow = 150.dp.toPx() * k
                 drawCircle(
                     brush = Brush.radialGradient(listOf(accent.copy(alpha = glowAlpha), Color.Transparent), center, glow),
                     radius = glow,
@@ -238,7 +251,7 @@ private fun Orb(status: Status) {
                 if (ready && !reduced) {
                     drawCircle(
                         color = accent.copy(alpha = 0.3f * (1f - halo)),
-                        radius = disc + 30.dp.toPx() * halo,
+                        radius = disc + 30.dp.toPx() * k * halo,
                         style = Stroke(1.5.dp.toPx()),
                     )
                 }
@@ -246,13 +259,13 @@ private fun Orb(status: Status) {
                     val t = ripple.value
                     drawCircle(
                         color = accent.copy(alpha = 0.45f * (1f - t)),
-                        radius = disc + 40.dp.toPx() * t,
+                        radius = disc + 40.dp.toPx() * k * t,
                         style = Stroke(2.dp.toPx()),
                     )
                 }
                 if (ring > 0f) {
-                    val r = RingRadius.toPx()
-                    val width = 4.dp.toPx()
+                    val r = RingRadius.toPx() * k
+                    val width = 4.dp.toPx() * k.coerceAtLeast(0.75f)
                     val topLeft = Offset(center.x - r, center.y - r)
                     val box = Size(r * 2, r * 2)
                     drawCircle(track.copy(alpha = track.alpha * ring), r, style = Stroke(width))
@@ -270,7 +283,7 @@ private fun Orb(status: Status) {
                 scale(pop.value) {
                     drawIntoCanvas { canvas ->
                         shadow.color = deep.toArgb()
-                        shadow.setShadowLayer(22.dp.toPx(), 0f, 10.dp.toPx(), deep.copy(alpha = 0.35f).toArgb())
+                        shadow.setShadowLayer(22.dp.toPx() * k, 0f, 10.dp.toPx() * k, deep.copy(alpha = 0.35f).toArgb())
                         canvas.nativeCanvas.drawCircle(center.x, center.y, disc, shadow)
                     }
                     drawCircle(
@@ -296,8 +309,8 @@ private fun Orb(status: Status) {
         OrbGlyph(
             status = status,
             modifier = Modifier.graphicsLayer {
-                scaleX = pop.value
-                scaleY = pop.value
+                scaleX = pop.value * k
+                scaleY = pop.value * k
             },
         )
     }
@@ -395,10 +408,15 @@ private fun FallingArrow() {
  * The block keeps a minimum height, so the orb above it stays where it is.
  */
 @Composable
-private fun Caption(status: Status, actions: StatusActions) {
+private fun Caption(status: Status, actions: StatusActions, compact: Boolean) {
     val colors = AppTheme.colors
     val reduced = LocalReducedMotion.current
     val rise = with(LocalDensity.current) { 8.dp.roundToPx() }
+    val minHeight by animateDpAsState(
+        targetValue = if (compact) 0.dp else CaptionHeight,
+        animationSpec = motion(Motion.SWAP, Motion.Standard),
+        label = "caption room",
+    )
     AnimatedContent(
         targetState = status,
         contentKey = { it.kind },
@@ -416,7 +434,7 @@ private fun Caption(status: Status, actions: StatusActions) {
         contentAlignment = Alignment.TopCenter,
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = CaptionHeight),
+            .heightIn(min = minHeight),
         label = "caption",
     ) { shown ->
         val text = statusText(shown)
@@ -433,16 +451,24 @@ private fun Caption(status: Status, actions: StatusActions) {
                     .semantics { liveRegion = LiveRegionMode.Polite },
             )
             text.detail?.let {
-                Spacer(Modifier.height(Space.s))
-                Text(
-                    text = it,
-                    style = AppType.lead,
-                    color = colors.muted,
-                    textAlign = TextAlign.Center,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 320.dp),
-                )
+                AnimatedVisibility(
+                    visible = !compact,
+                    enter = if (reduced) EnterTransition.None else fadeIn(tween(Motion.SLOW, delayMillis = 80)) + expandVertically(tween(Motion.SWAP, easing = Motion.Standard)),
+                    exit = if (reduced) ExitTransition.None else fadeOut(tween(Motion.FAST)) + shrinkVertically(tween(Motion.SWAP, easing = Motion.Standard)),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Spacer(Modifier.height(Space.s))
+                        Text(
+                            text = it,
+                            style = AppType.lead,
+                            color = colors.muted,
+                            textAlign = TextAlign.Center,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 320.dp),
+                        )
+                    }
+                }
             }
             CaptionButtons(shown, actions)
         }
@@ -477,7 +503,10 @@ private fun progressOf(status: Status): Float? = when (status) {
     else -> null
 }
 
-private fun percentOf(status: Status): Int? = progressOf(status)?.let { (it * 100).roundToInt() }
+private fun percentOf(status: Status): Int? = shownPercent(progressOf(status))
+
+/** The whole percentage once there is one to show: a bare "0%" says nothing, so the arrow stays until 1 %. */
+private fun shownPercent(progress: Float?): Int? = progress?.let { (it * 100).roundToInt() }?.takeIf { it >= 1 }
 
 /** The status line and its optional detail. */
 private data class StatusText(val title: String, val detail: String?)

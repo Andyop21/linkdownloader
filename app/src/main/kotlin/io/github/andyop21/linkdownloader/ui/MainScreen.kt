@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
@@ -148,8 +150,10 @@ class MainActions(
  * The content is at most 560 dp wide and scrolls when it does not fit (small phones, landscape,
  * the largest font, the keyboard open). It stays clear of the system bars and the keyboard. Its
  * blocks rise in, one after another, when the screen first appears. A tap on empty space puts the
- * keyboard away.
+ * keyboard away. While the keyboard is open the hero turns compact, so the field and **Paste link**
+ * sit fully above it.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MainContent(
     state: UiState,
@@ -161,6 +165,13 @@ fun MainContent(
     val status = state.status
     val colors = AppTheme.colors
     val focusManager = LocalFocusManager.current
+    val keyboardOpen = WindowInsets.isImeVisible
+    val scroll = rememberScrollState()
+    // Should the compact screen still not fit (landscape, the largest font), the field and Paste
+    // link are what must stay in view while typing.
+    LaunchedEffect(keyboardOpen, scroll.maxValue) {
+        if (keyboardOpen) scroll.animateScrollTo(scroll.maxValue)
+    }
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = colors.canvas,
@@ -178,7 +189,7 @@ fun MainContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(scroll),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Column(
@@ -193,7 +204,7 @@ fun MainContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Header(onLongPress = actions.onOpenAbout, modifier = Modifier.rise(0))
-                    Spacer(Modifier.weight(ABOVE).heightIn(min = Space.xl))
+                    Spacer(Modifier.weight(ABOVE).heightIn(min = if (keyboardOpen) Space.l else Space.xl))
                     StatusHero(
                         status = status,
                         actions = StatusActions(
@@ -204,8 +215,9 @@ fun MainContent(
                             canRetry = status is Status.Failed && status.reason.retryable && state.bar.isNotBlank(),
                         ),
                         modifier = Modifier.rise(1),
+                        compact = keyboardOpen,
                     )
-                    Spacer(Modifier.weight(BELOW).heightIn(min = Space.xl))
+                    Spacer(Modifier.weight(BELOW).heightIn(min = if (keyboardOpen) Space.l else Space.xl))
                     LinkBar(
                         text = state.bar,
                         enabled = !status.isRunning,
