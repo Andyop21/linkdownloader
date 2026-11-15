@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -39,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -56,6 +58,7 @@ import io.github.andyop21.linkdownloader.ui.theme.AppTheme
 import io.github.andyop21.linkdownloader.ui.theme.CardShape
 import io.github.andyop21.linkdownloader.ui.theme.LinkDownloaderTheme
 import io.github.andyop21.linkdownloader.ui.theme.SheetShape
+import io.github.andyop21.linkdownloader.ui.theme.Space
 import io.github.andyop21.linkdownloader.ui.theme.rise
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -139,11 +142,13 @@ class MainActions(
 )
 
 /**
- * The screen for [state]: the header at the top, the link field and the status card under it,
- * and **Paste link** at the bottom, where the thumb rests; plus the choice and About sheets when
- * open. The content is at most 560 dp wide and scrolls when it does not fit (small phones,
- * landscape, the largest font, the keyboard open). It stays clear of the system bars and the
- * keyboard. Its blocks rise in, one after another, when the screen first appears.
+ * The screen for [state], centred: the app's name in a bar at the top; the orb and the status
+ * under it in the middle of the free space, a little above centre; and the link field with
+ * **Paste link** at the bottom, where the thumb rests. Plus the choice and About sheets when open.
+ * The content is at most 560 dp wide and scrolls when it does not fit (small phones, landscape,
+ * the largest font, the keyboard open). It stays clear of the system bars and the keyboard. Its
+ * blocks rise in, one after another, when the screen first appears. A tap on empty space puts the
+ * keyboard away.
  */
 @Composable
 fun MainContent(
@@ -155,6 +160,7 @@ fun MainContent(
 ) {
     val status = state.status
     val colors = AppTheme.colors
+    val focusManager = LocalFocusManager.current
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = colors.canvas,
@@ -180,21 +186,15 @@ fun MainContent(
                         .widthIn(max = 560.dp)
                         .fillMaxWidth()
                         .heightIn(min = viewport)
-                        .padding(horizontal = 20.dp)
-                        .padding(top = 28.dp, bottom = 16.dp),
+                        // A tap on empty space puts the keyboard away.
+                        .pointerInput(Unit) { detectTapGestures { focusManager.clearFocus() } }
+                        .padding(horizontal = Space.xl)
+                        .padding(bottom = Space.l),
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Header(onLongPress = actions.onOpenAbout, modifier = Modifier.rise(0))
-                    Spacer(Modifier.height(28.dp))
-                    LinkBar(
-                        text = state.bar,
-                        enabled = !status.isRunning,
-                        onTextChange = actions.onBarChanged,
-                        onGo = actions.onGo,
-                        onClear = actions.onClear,
-                        modifier = Modifier.rise(1),
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    StatusCard(
+                    Spacer(Modifier.weight(ABOVE).heightIn(min = Space.xl))
+                    StatusHero(
                         status = status,
                         actions = StatusActions(
                             onCancel = actions.onCancel,
@@ -203,9 +203,18 @@ fun MainContent(
                             onDownloadAgain = actions.onDownloadAgain,
                             canRetry = status is Status.Failed && status.reason.retryable && state.bar.isNotBlank(),
                         ),
+                        modifier = Modifier.rise(1),
+                    )
+                    Spacer(Modifier.weight(BELOW).heightIn(min = Space.xl))
+                    LinkBar(
+                        text = state.bar,
+                        enabled = !status.isRunning,
+                        onTextChange = actions.onBarChanged,
+                        onGo = actions.onGo,
+                        onClear = actions.onClear,
                         modifier = Modifier.rise(2),
                     )
-                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
+                    Spacer(Modifier.height(Space.m))
                     PasteButton(
                         enabled = !status.isRunning,
                         onClick = actions.onPaste,
@@ -233,6 +242,10 @@ fun MainContent(
         )
     }
 }
+
+/** Free space above and below the hero: a little less above, so it sits at the optical centre. */
+private const val ABOVE = 0.8f
+private const val BELOW = 1f
 
 /** The video **Open** plays: the first one saved. */
 private fun firstVideoUri(status: Status): String? = when (status) {

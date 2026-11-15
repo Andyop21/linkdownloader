@@ -30,11 +30,16 @@ object AppIcons {
         "M14,10.5A4,4 0 0,0 8.34,10.5L5.5,13.34A4,4 0 0,0 11.16,19L12.5,17.66",
     )
 
-    /** An arrow into a tray: a download running. */
-    val Download: ImageVector = lineIcon(
-        name = "Download",
-        "M12,4V14.5M7.5,10L12,14.5L16.5,10",
-        "M5,19.5H19",
+    /** The arrow of [Tray], on its own so it can move: a download on its way. */
+    val Arrow: ImageVector = lineIcon(
+        name = "Arrow",
+        "M12,3.5V14M7.75,9.75L12,14L16.25,9.75",
+    )
+
+    /** The tray the [Arrow] drops into, as in the app icon. */
+    val Tray: ImageVector = lineIcon(
+        name = "Tray",
+        "M5,14V17A3,3 0 0,0 8,20H16A3,3 0 0,0 19,17V14",
     )
 
     /** A tick: saved. */
@@ -43,12 +48,11 @@ object AppIcons {
         "M5,12.5L9.75,17.25L19,7.5",
     )
 
-    /** An exclamation mark in a circle: a failure. */
+    /** An exclamation mark: a failure. */
     val Alert: ImageVector = lineIcon(
         name = "Alert",
-        "M21,12A9,9 0 1,1 3,12A9,9 0 1,1 21,12Z",
-        "M12,7.5V12.5",
-        "M12,16.25V16.5",
+        "M12,5V13.5",
+        "M12,18.5V18.75",
     )
 
     /** A question in a clipboard: nothing to paste. */

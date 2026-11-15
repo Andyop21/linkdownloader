@@ -96,7 +96,7 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
         start(saved.link, null)
     }
 
-    /** **Cancel** on the status card (B5). The job's partial files are deleted by the worker. */
+    /** **Cancel** on the screen (B5). The job's partial files are deleted by the worker. */
     fun onCancel() {
         current?.let { id ->
             downloads.cancel(id)

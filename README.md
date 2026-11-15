@@ -6,7 +6,7 @@ your phone's `Downloads/` folder.
 Everything happens on the phone, through [yt-dlp](https://github.com/yt-dlp/yt-dlp) running inside
 the app. No server, no account, no ads, no analytics.
 
-<img src="docs/images/screenshot-light.png" alt="The Link Downloader screen: the app name, an empty link field, a card saying Copy a link, then tap Paste, and a blue Paste link button at the bottom" width="270">
+<img src="docs/images/screenshot-light.png" alt="The Link Downloader screen: a blue orb with a download arrow in the middle, the line Copy a link, then tap Paste under it, and the link field with a blue Paste link button at the bottom" width="270">
 
 ## How it works
 

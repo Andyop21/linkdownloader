@@ -27,7 +27,7 @@ val CapsuleShape = CircleShape
 /** The link field. */
 val FieldShape = RoundedCornerShape(Corners.FIELD.dp)
 
-/** The status card and grouped lists. */
+/** Grouped lists and the snackbar. */
 val CardShape = RoundedCornerShape(Corners.CARD.dp)
 
 /** The bottom sheets' top corners. */

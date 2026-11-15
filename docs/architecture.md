@@ -47,7 +47,7 @@ One Gradle module, `app`. Packages under `io.github.andyop21.linkdownloader`:
 | Package | Holds |
 |---|---|
 | (root) | `LinkDownloaderApp` (initialises youtubedl-android once, creates the notification channel, schedules the yt-dlp update) and `MainActivity` |
-| `ui` | `MainScreen` and its components (`Header`, `LinkBar`, `StatusCard`, `PasteButton`, `ActionButton`, `IconTile`, `PulseDot`, `ProgressLine`), `MainViewModel`, `UiState`, `Downloads` (the ViewModel's view of the download side), the line icons, the choice sheet with its thumbnail loader, the About sheet and the one-time notification permission request |
+| `ui` | `MainScreen` and its components (`Header`, `StatusHero` with its orb and caption, `LinkBar`, `PasteButton`, `ActionButton`, `PulseDot`), `MainViewModel`, `UiState`, `Downloads` (the ViewModel's view of the download side), the line icons, the choice sheet with its thumbnail loader, the About sheet and the one-time notification permission request |
 | `ui.theme` | `AppColors` (both palettes and the status tones), Lato type (`AppType`), the corner scale, motion and reduced motion, `LinkDownloaderTheme` |
 | `link` | `LinkParser`: finds the first `http`/`https` link in a piece of text. Pure Kotlin. |
 | `download` | The download pipeline (below), `DownloadWorker`, `UpdateWorker`, the notifications and `DownloadQueue` (§ *Background work*) |
@@ -189,7 +189,7 @@ passes taps back as calls (`onPaste`, `onSubmit`, `onBarChanged`, `onClear`, `on
   (`ClipboardManager`, first item, `coerceToText`); **Open** sends `ACTION_VIEW` with a read grant
   and shows a snackbar when no app can play the video; a `Confirm` haptic plays once per finished
   job (also across rotations); `POST_NOTIFICATIONS` is asked once (§ *Permissions*).
-- **Components** (`Header`, `LinkBar`, `StatusCard`, `PasteButton`, `ChoiceSheet`, `AboutSheet`)
+- **Components** (`Header`, `StatusHero`, `LinkBar`, `PasteButton`, `ChoiceSheet`, `AboutSheet`)
   take state and callbacks and hold no logic. Each sheet's content
   (`ChoiceSheetContent`, `AboutSheetContent`) is separate from its `ModalBottomSheet`, so it can be
   previewed. The column is at most 560 dp wide and scrolls, so small phones, landscape, the
@@ -290,41 +290,46 @@ colours (`toMaterial()`) for the few Material parts that draw their own (sheets,
 |---|---|---|---|
 | canvas | `#F5F6F8` | `#0F1215` | The page |
 | surface | `#FFFFFF` | `#14171A` | Cards, the bar, sheets |
-| surfaceSubtle | `#EEF0F3` | `#1D2126` | Neutral tiles, the clear button, empty thumbnails |
+| surfaceSubtle | `#EEF0F3` | `#1D2126` | The clear button, empty thumbnails |
 | ink | `#1B1D21` | `#E8EAED` | Main text |
 | ink2 | `#464B52` | `#C7CCD2` | Secondary text, the percentage |
-| muted | `#5F656C` | `#939BA4` | Eyebrows, detail lines, the lead |
+| muted | `#5F656C` | `#939BA4` | Detail lines under the status |
 | faint | `#676E78` | `#81888F` | Placeholder, the bar's icon |
 | border | `#E4E7EB` | `#2C3138` | Card edges, dividers |
 | borderStrong | `#D5D9DE` | `#3A4048` | Outlined buttons |
 | controlBorder | `#80878F` | `#6B727C` | The bar's edge (3:1) |
-| primary | `#0063F3` | `#3D8BFF` | Focus, progress, the live dot, selection |
+| primary | `#0063F3` | `#3D8BFF` | Focus, the progress ring, the orb's glow, selection |
 | primaryFill / pressed | `#0063F3` / `#0059D1` | `#2473E5` / `#1466D7` | Filled buttons, white label |
-| primarySoft / primaryInk | `#EAF2FF` / `#0059D1` | `#16233A` / `#6AA6FF` | The working tile |
-| success / successSoft | `#007E3A` / `#E3F5EB` | `#34B26C` / `#10291D` | The saved tile |
-| warning / warningSoft | `#956300` / `#FBF1D6` | `#D5A12A` / `#2B2312` | The no-link tile |
-| danger / dangerSoft | `#CF1F14` / `#FEE4E2` | `#F0655A` / `#33191A` | The failure tile |
+| primarySoft / primaryInk | `#EAF2FF` / `#0059D1` | `#16233A` / `#6AA6FF` | Material's primary container |
+| success | `#007E3A` | `#34B26C` | The saved orb's glow and ripple |
+| warning | `#956300` | `#D5A12A` | The no-link orb's glow, the About sheet's warning dot |
+| danger | `#CF1F14` | `#F0655A` | The failure orb's glow |
 | overlay / overlayInk / overlayAction | `#1D2126` / `#FFFFFF` / `#8FB8FF` | `#262A30` / `#FFFFFF` / `#8FB8FF` | The snackbar |
 
-`track` (ink at 8 %, the progress track) and `press` (ink at 6 %, an outlined button held down)
+`track` (ink at 8 %, the progress ring's track) and `press` (ink at 6 %, an outlined button held down)
 derive from ink. Every text/background pair the screen draws passes WCAG AA (4.5:1 for text, 3:1
 for icons, control edges and the progress bar) in both themes; `ThemeContrastTest` checks the
 list, laying translucent colours over their background first. Disabled controls are exempt, as in
 WCAG. Dynamic colour is off: the app keeps its own palette.
 
-- **Status tones** (`Tone`, `Status.tone`): the status card is always the white surface with a
-  hairline edge; only its 40 dp icon tile is tinted. Neutral (idle, choosing), primary (preparing,
-  downloading, saving), success (done, already saved), warning (no link), danger (failed).
+- **The orb's colours** (`Tone`, `Status.tone`, `orb()`, `accent()`): a gradient from the top left
+  to the bottom right, the same in both themes. Ready, choosing and working: blue `#3D8BFF` to
+  `#0059D1` (`#1466D7` in the dark theme); saved: green `#1F9D57` to `#007E3A`; nothing to
+  download: orange `#E8730C` to `#BF5600`; failed: red `#E5483D` to `#B42318`. White glyphs hold
+  3:1 on both ends. `accent()` is the tone's solid colour for the ring, glow, halo and ripple.
 - **Type** (`ui/theme/Type.kt`): Lato 400, 700 and 900 from Google Fonts' OFL release, unmodified,
   as `res/font/lato_regular.ttf`, `lato_bold.ttf` and `lato_black.ttf`; licence in
-  `assets/licenses/OFL-Lato.txt`. Named runs in `AppType`: title 26 sp black, tracking -0.02 em;
-  heading 19 sp bold; card title 16 sp bold; body 14 sp at 1.45; lead 15 sp; eyebrow 11 sp bold,
-  uppercase, tracking 0.06 em; button 16 sp bold; field 16 sp; figures with tabular numbers. Line
+  `assets/licenses/OFL-Lato.txt`. Named runs in `AppType`: bar title 17 sp bold; hero title 22 sp
+  bold, tracking -0.015 em; lead 15 sp; percentage 26 sp black with tabular figures (its % sign
+  15 sp); heading 19 sp bold; body 14 sp at 1.45; sub 13 sp; button 16 sp bold; field 16 sp. Line
   heights split their leading evenly above and below, as CSS does. Material's type scale is set in
   Lato too.
+- **Spacing** (`ui/theme/Spacing.kt`, `Space`): 4, 8, 12, 16, 24, 32 and 48 dp, and a 56 dp title
+  bar. Page margins 24 dp; 8 dp between a status line and its detail and between buttons; 24 dp
+  above the buttons; 12 dp between the field and **Paste link**; at least 24 dp of free space
+  above and below the hero.
 - **Shapes** (`ui/theme/Shape.kt`): one corner scale, every corner a circular arc: `BadgeShape` 6,
-  `TileShape` 10 (icon tiles, thumbnails), `FieldShape` 12, `CardShape` 14 (status card, grouped
-  list, snackbar), `SheetShape` 18 (top corners); `CapsuleShape` for every button and mark. A shape
+  `TileShape` 10 (thumbnails), `FieldShape` 12, `CardShape` 14 (grouped list, snackbar), `SheetShape` 18 (top corners); `CapsuleShape` for every button and mark. A shape
   nested inside another takes the outer radius less the inset (`Corners.inner`).
 - **Motion** (`ui/theme/Motion.kt`): curves `EaseOut` (0.16, 1, 0.3, 1) for arrivals, `EaseIn`
   (0.4, 0, 1, 1) for departures, `Standard` (0.4, 0, 0.2, 1) for colour and size changes, and
@@ -332,23 +337,32 @@ WCAG. Dynamic colour is off: the app keeps its own palette.
   Durations: 120 ms press, 160 ms colour, 240 ms size change, 320 ms content swap, 380 ms pop,
   480 ms progress glide, 640 ms rise. `motion()` gives a tween or, with motion off, a snap.
   `Modifier.rise(index)` fades a block in from 14 dp below, 70 ms after the one before;
-  `Modifier.tactile()` shrinks a control to 97 % and dips it 1 dp while held. The status card's
-  content cross-fades (out 120 ms, in 320 ms rising 8 dp) when the kind of status changes, while
-  the card eases to its new height; progress within a download updates in place.
-  `rememberReducedMotion()` reads the system animator duration scale and follows changes; the
-  theme provides it as `LocalReducedMotion`, and when it is 0 every transition snaps, the live dot
-  stays still and the indeterminate progress line is an empty track.
-- **Screen:** the header (title and lead) at the top left, the bar (56 dp, 1 dp control edge,
-  1.5 dp blue edge and a soft 3 dp ring with focus, link icon, clear button while it holds text),
-  the status card 12 dp below, and the 56 dp **Paste link** capsule at the bottom, 20 dp from the
-  sides. Card actions are 40 dp capsules with a 48 dp touch target: filled blue for **Open** and
-  **Try again**, outlined for **Cancel** and **Download again**. The progress line is 6 dp; before
-  the first progress a short segment sweeps across it.
+  `Modifier.tactile()` shrinks a control to 97 % and dips it 1 dp while held. The caption
+  cross-fades (out 120 ms, in 320 ms rising 8 dp) when the kind of status changes, and keeps a
+  176 dp minimum height so the orb above it stays put; progress within a download updates in
+  place. The orb (`StatusHero.kt`): its colours cross-fade over 320 ms; ready, a 1.5 dp halo
+  spreads 30 dp from the disc and fades every 2.8 s; working, a 4 dp ring 16 dp outside the disc
+  fades in, either filling from the top with the progress (480 ms glide) or, before the first
+  progress, as an 80° arc turning once every 1.1 s while the arrow drops into the tray every
+  1.3 s; the glyph changes by scaling in from 60 % and fading, the check on the spring; saved, the
+  disc pops from 86 % on the spring and one 2 dp ripple spreads 40 dp over 900 ms; failed or no
+  link, the orb shakes, 8 dp decaying over 520 ms. `rememberReducedMotion()` reads the system
+  animator duration scale and follows changes; the theme provides it as `LocalReducedMotion`, and
+  when it is 0 every transition snaps and the halo, arc, arrow, pop, ripple, shake and live dot
+  stay still.
+- **Screen:** centred, at most 560 dp wide. The 56 dp title bar; the hero (a 200 dp orb box with a
+  120 dp disc lit from the top left, a soft coloured shadow and a 150 dp radial glow, then the
+  caption: status line, detail and 40 dp capsule buttons, filled blue for **Open** and **Try
+  again**, outlined for **Cancel** and **Download again**, each with a 48 dp touch target) in the
+  free space, a little above centre (free space split 0.8 : 1); then the bar (56 dp, 1 dp control
+  edge, 1.5 dp blue edge and a soft 3 dp ring with focus, link icon, clear button while it holds
+  text) and, 12 dp under it, the 56 dp **Paste link** capsule. A tap on empty space clears focus,
+  which puts the keyboard away.
 - **Icon:** adaptive launcher icon with a white arrow into a tray on blue `#0063F3`
   (`drawable/ic_launcher_foreground.xml`), the same strokes as the monochrome layer for themed
   icons (`ic_launcher_monochrome.xml`) and as the white notification icon (`ic_stat_download.xml`).
-- **Line icons** (`ui/Icons.kt`): paste, link, download, check, alert, empty clipboard, grid and
-  close, drawn as 2 dp stroked paths on a 24 dp grid; no icon library.
+- **Line icons** (`ui/Icons.kt`): paste, link, arrow and tray (the orb's download mark, in two
+  pieces so the arrow can move), check, alert, empty clipboard, grid and close, drawn as 2 dp stroked paths on a 24 dp grid; no icon library.
 
 ## Dependencies
 

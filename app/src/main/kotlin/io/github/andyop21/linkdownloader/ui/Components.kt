@@ -5,8 +5,8 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -23,10 +23,8 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -55,16 +53,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onLongClick
-import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -79,25 +73,23 @@ import io.github.andyop21.linkdownloader.ui.theme.Corners
 import io.github.andyop21.linkdownloader.ui.theme.FieldShape
 import io.github.andyop21.linkdownloader.ui.theme.LocalReducedMotion
 import io.github.andyop21.linkdownloader.ui.theme.Motion
-import io.github.andyop21.linkdownloader.ui.theme.TileShape
-import io.github.andyop21.linkdownloader.ui.theme.Tone
-import io.github.andyop21.linkdownloader.ui.theme.ink
+import io.github.andyop21.linkdownloader.ui.theme.Space
 import io.github.andyop21.linkdownloader.ui.theme.motion
-import io.github.andyop21.linkdownloader.ui.theme.soft
 import io.github.andyop21.linkdownloader.ui.theme.tactile
 
 /**
- * The header: the app's name and one line on what it does, left-aligned. A long-press opens the
- * About sheet (B10); TalkBack offers the same as a long-press action named "Show app info".
+ * The bar at the top: the app's name, centred. A long-press opens the About sheet (B10); TalkBack
+ * offers the same as a long-press action named "Show app info".
  */
 @Composable
 fun Header(onLongPress: () -> Unit, modifier: Modifier = Modifier) {
     val colors = AppTheme.colors
     val currentOnLongPress by rememberUpdatedState(onLongPress)
     val actionLabel = stringResource(R.string.header_about_action)
-    Column(
+    Box(
         modifier = modifier
             .fillMaxWidth()
+            .height(Space.bar)
             .pointerInput(Unit) { detectTapGestures(onLongPress = { currentOnLongPress() }) }
             .semantics(mergeDescendants = true) {
                 onLongClick(label = actionLabel) {
@@ -105,17 +97,16 @@ fun Header(onLongPress: () -> Unit, modifier: Modifier = Modifier) {
                     true
                 }
             },
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentAlignment = Alignment.Center,
     ) {
         Text(
             text = stringResource(R.string.app_name),
-            style = AppType.title,
+            style = AppType.barTitle,
             color = colors.ink,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.semantics { heading() },
         )
-        Text(text = stringResource(R.string.header_lead), style = AppType.lead, color = colors.muted)
     }
 }
 
@@ -251,8 +242,8 @@ private fun ClearButton(visible: Boolean, onClick: () -> Unit) {
 }
 
 /**
- * The main button (B1, B2): a full-width blue capsule with a clipboard icon, at the bottom of the
- * screen where the thumb rests. It darkens and dips when pressed. Disabled while a download runs (B4).
+ * The main button (B1, B2): a full-width blue capsule with a clipboard icon, under the link field
+ * at the bottom of the screen, where the thumb rests. It darkens and dips when pressed. Disabled while a download runs (B4).
  */
 @Composable
 fun PasteButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -349,22 +340,6 @@ fun ActionButton(
     }
 }
 
-/** A rounded tile in [tone]'s tint with its [icon] in the tone's colour. Decorative. */
-@Composable
-fun IconTile(icon: ImageVector, tone: Tone, modifier: Modifier = Modifier, size: Dp = 40.dp) {
-    val colors = AppTheme.colors
-    val fill by animateColorAsState(colors.soft(tone), motion(Motion.SLOW), label = "tile fill")
-    val tint by animateColorAsState(colors.ink(tone), motion(Motion.SLOW), label = "tile tint")
-    Box(
-        modifier = modifier
-            .size(size)
-            .background(fill, TileShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(size / 2))
-    }
-}
-
 /**
  * A live dot: it breathes (opacity 1 → 0.35, scale 1 → 0.82) every 2.2 s while something runs.
  * Still when [pulse] is false or motion is off.
@@ -393,57 +368,3 @@ fun PulseDot(color: Color, modifier: Modifier = Modifier, pulse: Boolean = true,
             .background(color, CapsuleShape),
     )
 }
-
-/**
- * A thin progress line. With a [progress] it glides to each new value; without one a short
- * segment sweeps across, or, with motion off, the track stays empty. TalkBack reads it as a
- * progress bar either way.
- */
-@Composable
-fun ProgressLine(progress: Float?, color: Color, track: Color, modifier: Modifier = Modifier) {
-    val base = modifier
-        .fillMaxWidth()
-        .height(6.dp)
-        .clip(CapsuleShape)
-        .background(track)
-    if (progress != null) {
-        val shown by animateFloatAsState(
-            targetValue = progress.coerceIn(0f, 1f),
-            animationSpec = motion(Motion.GLIDE, Motion.EaseOut),
-            label = "progress",
-        )
-        Box(base.clearAndSetSemantics { progressBarRangeInfo = ProgressBarRangeInfo(progress, 0f..1f) }) {
-            Box(
-                Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(shown)
-                    .background(color, CapsuleShape),
-            )
-        }
-        return
-    }
-    val reduced = LocalReducedMotion.current
-    Box(base.clearAndSetSemantics { progressBarRangeInfo = ProgressBarRangeInfo.Indeterminate }) {
-        if (!reduced) {
-            val transition = rememberInfiniteTransition(label = "sweep")
-            val sweep by transition.animateFloat(
-                initialValue = 0f,
-                targetValue = 1f,
-                animationSpec = infiniteRepeatable(tween(1400, easing = Motion.Standard), RepeatMode.Restart),
-                label = "sweep position",
-            )
-            Box(
-                Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(SWEEP_WIDTH)
-                    .graphicsLayer {
-                        // From just off the left edge to just off the right edge.
-                        translationX = (sweep * (1f + SWEEP_WIDTH) - SWEEP_WIDTH) * size.width / SWEEP_WIDTH
-                    }
-                    .background(color, CapsuleShape),
-            )
-        }
-    }
-}
-
-private const val SWEEP_WIDTH = 0.32f

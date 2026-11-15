@@ -15,20 +15,26 @@ import kotlin.math.min
  */
 class ThemeContrastTest {
 
-    private class Pair(val name: String, val foreground: Color, val background: Color, val minimum: Double)
+    private data class Pair(val name: String, val foreground: Color, val background: Color, val minimum: Double)
 
     private fun text(name: String, fg: Color, bg: Color) = Pair(name, fg, bg, TEXT)
     private fun graphic(name: String, fg: Color, bg: Color) = Pair(name, fg, bg, GRAPHIC)
 
     private fun pairs(c: AppColors): List<Pair> {
-        val tiles = Tone.entries.map { tone -> graphic("$tone tile icon", c.ink(tone), c.soft(tone)) }
-        val track = c.track.compositeOver(c.surface)
-        return tiles + listOf(
-            text("title on the canvas", c.ink, c.canvas),
-            text("lead on the canvas", c.muted, c.canvas),
-            text("card title", c.ink, c.surface),
-            text("card eyebrow and detail", c.muted, c.surface),
-            text("card percentage", c.ink2, c.surface),
+        val orbs = Tone.entries.flatMap { tone ->
+            val orb = c.orb(tone)
+            listOf(
+                graphic("$tone orb glyph, light side", Color.White, orb.light),
+                graphic("$tone orb glyph, deep side", Color.White, orb.deep),
+                graphic("$tone ring on the page", c.accent(tone), c.canvas),
+            )
+        }
+        val track = c.track.compositeOver(c.canvas)
+        return orbs + listOf(
+            text("bar title on the canvas", c.ink, c.canvas),
+            text("status line on the canvas", c.ink, c.canvas),
+            text("status detail on the canvas", c.muted, c.canvas),
+            text("percentage (large text) in the orb", Color.White, c.orb(Tone.Primary).light).copy(minimum = GRAPHIC),
             text("field text", c.ink, c.surface),
             text("field placeholder", c.faint, c.surface),
             text("field text while a download runs", c.muted, c.surface),
@@ -39,10 +45,10 @@ class ThemeContrastTest {
             graphic("clear button icon", c.ink2, c.surfaceSubtle),
             text("main and primary button labels", c.onPrimary, c.primaryFill),
             text("primary button labels, pressed", c.onPrimary, c.primaryFillPressed),
-            text("outlined button labels", c.ink, c.surface),
-            text("outlined button labels, pressed", c.ink, c.press.compositeOver(c.surface)),
+            text("outlined button labels", c.ink, c.canvas),
+            text("outlined button labels, pressed", c.ink, c.press.compositeOver(c.canvas)),
             graphic("progress on its track", c.primary, track),
-            graphic("live dot", c.primary, c.surface),
+            graphic("about live dot", c.primary, c.surface),
             text("sheet text", c.ink, c.surface),
             text("sheet secondary text", c.muted, c.surface),
             text("about list labels", c.ink2, c.canvas),

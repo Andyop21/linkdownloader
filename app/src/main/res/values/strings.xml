@@ -24,34 +24,30 @@
     <string name="notification_choose_title">Choose which videos to save</string>
 
     <!-- The screen (docs/product.md § The screen) -->
-    <string name="header_lead">Paste a video link to save it to Downloads.</string>
     <string name="header_about_action">Show app info</string>
     <string name="bar_label">Video link</string>
     <string name="bar_placeholder">Paste or type a link</string>
     <string name="bar_clear">Clear link</string>
     <string name="paste">Paste link</string>
 
-    <!-- Status card -->
-    <string name="status_idle_eyebrow">Ready</string>
+    <!-- Status, under the orb -->
     <string name="status_idle_title">Copy a link, then tap Paste</string>
     <string name="status_idle_detail">Works with YouTube, TikTok, Instagram, X and most video sites.</string>
-    <string name="status_no_link_eyebrow">Nothing to download</string>
     <string name="status_no_link_clipboard_title">No link on the clipboard</string>
     <string name="status_no_link_clipboard_detail">Copy a video link in another app, then tap Paste.</string>
     <string name="status_no_link_bar_title">That isn\'t a link</string>
     <string name="status_no_link_bar_detail">Links start with https://. Paste one, or check what you typed.</string>
-    <string name="status_preparing_eyebrow">Preparing</string>
     <string name="status_preparing_title">Reading the link</string>
-    <string name="status_downloading_eyebrow">Downloading</string>
+    <string name="status_preparing_detail">Getting the video\'s details.</string>
     <string name="status_downloading_title">Downloading the video</string>
-    <string name="status_saving_eyebrow">Saving</string>
-    <string name="status_saving_title">Saving to Downloads</string>
-    <string name="status_position_eyebrow">%1$s · %2$d of %3$d</string>
+    <string name="status_downloading">Downloading</string>
+    <string name="status_saving_title">Saving the video</string>
+    <string name="status_saving">Saving to Downloads</string>
+    <string name="status_position">%1$s · %2$d of %3$d</string>
     <string name="status_percent">%1$d%%</string>
-    <string name="status_choosing_eyebrow">Choose videos</string>
     <string name="status_choosing_title">This post has several videos</string>
     <string name="status_choosing_detail">Pick the ones to save.</string>
-    <string name="status_done_eyebrow">Saved to Downloads</string>
+    <string name="status_done_detail">Saved to Downloads</string>
     <plurals name="status_done_videos_title">
         <item quantity="one">%d video saved</item>
         <item quantity="other">%d videos saved</item>
@@ -60,9 +56,7 @@
         <item quantity="one">%d couldn\'t be saved.</item>
         <item quantity="other">%d couldn\'t be saved.</item>
     </plurals>
-    <string name="status_already_eyebrow">Already saved</string>
-    <string name="status_already_detail">You saved this link a moment ago.</string>
-    <string name="status_failed_eyebrow">Couldn\'t download</string>
+    <string name="status_already_detail">Already saved. You downloaded this link a moment ago.</string>
     <string name="status_cancel">Cancel</string>
     <string name="status_open">Open</string>
     <string name="status_retry">Try again</string>

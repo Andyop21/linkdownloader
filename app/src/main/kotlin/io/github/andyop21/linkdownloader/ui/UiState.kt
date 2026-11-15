@@ -15,7 +15,7 @@ data class UiState(
     val about: AboutState = AboutState(),
 )
 
-/** What the status card says (docs/product.md § Behaviour). */
+/** What the screen says is happening (docs/product.md § Behaviour). */
 sealed interface Status {
 
     /** Nothing is happening; the screen waits for a link. */

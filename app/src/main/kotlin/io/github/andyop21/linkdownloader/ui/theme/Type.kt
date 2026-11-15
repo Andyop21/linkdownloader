@@ -46,26 +46,26 @@ private fun style(
 
 /** The named runs the screen uses. Colours are set where the text is drawn. */
 object AppType {
-    /** The app's name at the top: 26 sp, black, tight. */
-    val title = style(26f, FontWeight.Black, lineHeight = 1.15f, tracking = -0.02f)
+    /** The app's name in the bar at the top: 17 sp, bold. */
+    val barTitle = style(17f, FontWeight.Bold, lineHeight = 1.2f, tracking = -0.01f)
 
-    /** The line under the title: 15 sp. */
+    /** The status line under the orb: 22 sp, bold, tight. */
+    val heroTitle = style(22f, FontWeight.Bold, lineHeight = 1.25f, tracking = -0.015f)
+
+    /** The detail under the status line: 15 sp. */
     val lead = style(15f)
+
+    /** The percentage inside the orb: 26 sp, black, tabular figures. */
+    val percent = style(26f, FontWeight.Black, lineHeight = 1f, tracking = -0.02f, tabular = true)
 
     /** A sheet's title: 19 sp, bold. */
     val heading = style(19f, FontWeight.Bold, lineHeight = 1.25f, tracking = -0.015f)
-
-    /** The status card's main line: 16 sp, bold. */
-    val cardTitle = style(16f, FontWeight.Bold, lineHeight = 1.3f, tracking = -0.01f)
 
     /** Body text: 14 sp. */
     val body = style(14f)
 
     /** A secondary line: 13 sp. */
     val sub = style(13f, lineHeight = 1.4f)
-
-    /** A small uppercase label above a title: 11 sp, bold, spaced (the caller uppercases). */
-    val eyebrow = style(11f, FontWeight.Bold, lineHeight = 1.3f, tracking = 0.06f)
 
     /** The main button's label: 16 sp, bold. */
     val button = style(16f, FontWeight.Bold, lineHeight = 1.2f)

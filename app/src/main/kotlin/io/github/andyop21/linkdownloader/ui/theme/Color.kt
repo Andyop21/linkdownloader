@@ -25,7 +25,7 @@ data class AppColors(
     val ink: Color,
     /** Secondary text that still reads as content. */
     val ink2: Color,
-    /** Supporting text: detail lines, eyebrows. */
+    /** Supporting text: detail lines. */
     val muted: Color,
     /** The quietest text: placeholders, file names. */
     val faint: Color,
@@ -129,25 +129,26 @@ data class AppColors(
     }
 }
 
-/** A state's colour, as an icon tile shows it before the words beside it (which are always there). */
+/** A state's colour, as the orb shows it before the words under it (which are always there). */
 enum class Tone { Neutral, Primary, Success, Warning, Danger }
 
-/** The tone's own colour: an icon on its [soft] tile. */
-fun AppColors.ink(tone: Tone): Color = when (tone) {
-    Tone.Neutral -> ink2
-    Tone.Primary -> primaryInk
+/** The tone's solid colour on the page: the progress ring, the orb's glow and its halo. */
+fun AppColors.accent(tone: Tone): Color = when (tone) {
+    Tone.Neutral, Tone.Primary -> primary
     Tone.Success -> success
     Tone.Warning -> warning
     Tone.Danger -> danger
 }
 
-/** The tone's tint: the background of an icon tile. */
-fun AppColors.soft(tone: Tone): Color = when (tone) {
-    Tone.Neutral -> surfaceSubtle
-    Tone.Primary -> primarySoft
-    Tone.Success -> successSoft
-    Tone.Warning -> warningSoft
-    Tone.Danger -> dangerSoft
+/** The orb's gradient for a tone, from its top-left [light] to its bottom-right [deep]; white glyphs sit on it. */
+data class OrbColors(val light: Color, val deep: Color)
+
+/** The orb's gradient for [tone]. The same in both themes: a saturated disc reads on either page. */
+fun AppColors.orb(tone: Tone): OrbColors = when (tone) {
+    Tone.Neutral, Tone.Primary -> OrbColors(Color(0xFF3D8BFF), if (dark) Color(0xFF1466D7) else Color(0xFF0059D1))
+    Tone.Success -> OrbColors(Color(0xFF1F9D57), Color(0xFF007E3A))
+    Tone.Warning -> OrbColors(Color(0xFFE8730C), Color(0xFFBF5600))
+    Tone.Danger -> OrbColors(Color(0xFFE5483D), Color(0xFFB42318))
 }
 
 /** Material 3 told the same colours, so the few Material parts the screen uses draw in this palette. */

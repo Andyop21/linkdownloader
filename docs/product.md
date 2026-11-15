@@ -10,16 +10,19 @@ It is installed by sideloading the APK. It is not published on Google Play.
 
 ## The screen
 
-One screen, top to bottom:
+One screen, centred, top to bottom:
 
-1. **A header**: the app name and one line on what it does.
-2. **The bar**: a single-line text field that holds the link, with a clear button while it holds
-   text.
-3. **A status card** under the bar: a small label, one plain line about what is happening and a
-   detail line, with progress while downloading and the action that fits (Cancel, Open, Try
-   again, Download again).
-4. **The Paste link button** at the bottom of the screen, where the thumb rests: full width and the
-   obvious thing to tap.
+1. **A title bar**: the app name, small and centred.
+2. **The orb**, in the middle of the screen: a disc in the status's colour that shows the state at
+   a glance, with the progress as a ring around it and the percentage inside while downloading.
+3. **The status** under the orb: one plain line about what is happening, a detail line, and the
+   action that fits (Cancel, Open, Try again, Download again).
+4. **The bar** near the bottom: a single-line text field that holds the link, with a clear button
+   while it holds text.
+5. **The Paste link button** under the bar, at the bottom of the screen where the thumb rests: full
+   width and the obvious thing to tap.
+
+A tap on empty space puts the keyboard away.
 
 No menus, no settings screen, no history list, no second screen.
 
@@ -31,7 +34,7 @@ No menus, no settings screen, no history list, no second screen.
 | B2 | **Paste** is tapped and the clipboard holds no link, or is empty | The bar is left unchanged and the status says that there is no link on the clipboard. Nothing starts. |
 | B3 | A link is typed or pasted into the bar with the keyboard, and the keyboard's action key is pressed | Same as B1, using the bar's text (the bar then holds just the link); same as B2 if it holds no link, with a message that the bar holds no link. |
 | B4 | A download is running | The status shows the video's title once known, then the progress, which never goes backwards. When several videos of one post download, it also says which one of how many ("2 of 3"), and the progress covers them all. **Paste** and the keyboard action are disabled. One download at a time. |
-| B5 | **Cancel** is tapped on the status card or in the notification | The download stops, its partial files are deleted, the bar is emptied and the status returns to idle. Videos of the same post that were already saved stay saved. |
+| B5 | **Cancel** is tapped on the screen or in the notification | The download stops, its partial files are deleted, the bar is emptied and the status returns to idle. Videos of the same post that were already saved stay saved. |
 | B6 | The download finishes | The video is in `Downloads/`, named after its title. The bar empties itself, ready for the next link. The status says it was saved, with the video's title, the file name and an **Open** action that plays it. For several videos it says how many were saved (and how many could not be, if any), and **Open** plays the first. The phone gives a light haptic tick. |
 | B7 | The download fails | The status gives a short title and a plain reason (table below). No technical error text, ever. The link stays in the bar. When the phone was offline or the cause is unknown, **Try again** starts the same link again. |
 | B8 | The app is left while a download runs | The download continues, with a notification showing progress and a Cancel action. When it ends, the notification says saved (tap to open) or failed. When the link turns out to be a post with several videos while the app is not on screen, a notification asks to choose which videos to save and opens the app on the choice. |
@@ -64,17 +67,19 @@ The notification shows the message alone, under "Couldn't download".
 
 ## Look and feel
 
-Calm, clean and precise, like a well-made tool:
+Calm, clean and precise, like a well-made tool, with one living element at its centre:
 
-- A cool-gray neutral palette with one blue for actions, and soft tints only where a state needs
-  them: blue while working, green when saved, amber when there is nothing to download, red on
-  failure. A colour never stands alone; the words beside it always say the same.
+- A cool-gray neutral palette with one blue for actions. The orb takes the status's colour: blue
+  while ready or working, green when saved, orange when there is nothing to download, red on
+  failure. A colour never stands alone; the words under it always say the same.
 - Lato, a tight type scale and plain, short wording. No mascot, no exclamation marks.
-- One corner scale and capsule buttons. Cards are white on the gray page with a hairline edge.
-- Quiet, purposeful motion: the screen's blocks rise in on launch, a new status fades in where it
-  stands while the card eases to its new height, progress glides, a live dot breathes while a
-  download runs, buttons dip when pressed and the saved check pops in once. With the system's
-  animations turned off, everything is still.
+- A centred composition on an even 4 dp spacing scale; one corner scale and capsule buttons.
+- Purposeful motion: the screen's blocks rise in on launch; ready, a halo breathes out from the
+  orb; while the link is read an arc turns and the arrow drops into the tray; while downloading
+  the ring fills and the percentage counts up; when saved the orb turns green, the check pops in
+  and one ripple spreads; on a failure or when there is nothing to download the orb shakes once. A
+  new status fades in where it stands, and buttons dip when pressed. With the system's animations
+  turned off, everything is still.
 - Light and dark themes, both equally finished. Text contrast meets WCAG AA.
 - Material 3 components with the app's own colours and shapes, not the stock look.
 

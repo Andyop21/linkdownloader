@@ -14,11 +14,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Downloads keep going when the app is left, with a notification that shows the progress and can
   cancel the download, then says when the video is saved (tap to play it) or why it failed.
 - yt-dlp updates itself in the background, at most once a day.
-- The look: cool grays with one blue, the Lato font, white cards with a hairline edge and a small
-  tinted icon for each state, in light and dark. **Paste link** sits at the bottom of the screen,
-  within reach of the thumb. Quiet motion: the screen rises in on launch, a new status fades in
-  where it stands, progress glides, a live dot breathes while a download runs and buttons dip when
-  pressed; all of it keeps still when the phone's animations are off. An app icon (with a
+- The look: a centred screen around an orb that shows what is happening, in cool grays with one
+  blue and the Lato font, in light and dark. The orb breathes while ready, drops its arrow into the
+  tray while the link is read, fills a ring with the percentage inside while downloading, turns
+  green with a check and a ripple when saved, and shakes once on a failure; all of it keeps still
+  when the phone's animations are off. The link field and **Paste link** sit together at the
+  bottom, within reach of the thumb, and a tap on empty space puts the keyboard away. An app icon (with a
   themed-icon layer) and notification icon showing an arrow into a tray.
 - The link field has a clear button, and empties itself when a video is saved or a download is
   cancelled, ready for the next link.

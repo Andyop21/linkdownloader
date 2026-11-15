@@ -14,7 +14,7 @@ val FailureReason.messageRes: Int
         FailureReason.Unknown -> R.string.failure_unknown
     }
 
-/** The short title for this reason, above [messageRes] on the status card. */
+/** The short title for this reason, above [messageRes] under the orb. */
 @get:StringRes
 val FailureReason.titleRes: Int
     get() = when (this) {
