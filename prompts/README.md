@@ -50,7 +50,7 @@ definition of done. Prompts run in the order of [`NEXT-STEPS.md`](NEXT-STEPS.md)
 | ID | Status | Prompt | Summary |
 |---|---|---|---|
 | P01 | Finished | [Scaffold the Android project](finished/P01-scaffold-app.md) | Gradle, version catalog, Compose, `app` module, placeholder screen |
-| P02 | Not started | [Prove the engine on a real phone](not-finished/P02-engine-probe.md) | youtubedl-android without ffmpeg, `EngineProbeTest`, DEC-003 |
+| P02 | Finished | [Prove the engine on a real phone](finished/P02-engine-probe.md) | youtubedl-android without ffmpeg, `EngineProbeTest`, DEC-003 |
 | P03 | Not started | [The download pipeline](not-finished/P03-download-pipeline.md) | `FormatPicker`, `YtDlp`, `MediaAssembler`, `DownloadsSaver`, `VideoDownloader` |
 | P04 | Not started | [Background downloads](not-finished/P04-background-downloads.md) | `DownloadWorker`, notifications, `UpdateWorker`, `DownloadQueue` |
 | P05 | Not started | [The main screen](not-finished/P05-main-screen.md) | `LinkParser`, `MainViewModel`, `MainScreen`, About sheet |

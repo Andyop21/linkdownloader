@@ -13,7 +13,7 @@ Line format:
 
 ### Stage 1 — Foundation
 
-- [P02](not-finished/P02-engine-probe.md): youtubedl-android on the phone; probe the five sites; DEC-003. Entry: P01. Needs the owner's phone and links.
+Finished: P01, P02.
 
 ### Stage 2 — The engine
 
