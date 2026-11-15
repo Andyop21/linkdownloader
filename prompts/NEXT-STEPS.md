@@ -13,7 +13,6 @@ Line format:
 
 ### Stage 1 — Foundation
 
-- [P01](not-finished/P01-scaffold-app.md): Gradle, Compose and the `app` module, building clean. Entry: none.
 - [P02](not-finished/P02-engine-probe.md): youtubedl-android on the phone; probe the five sites; DEC-003. Entry: P01. Needs the owner's phone and links.
 
 ### Stage 2 — The engine
