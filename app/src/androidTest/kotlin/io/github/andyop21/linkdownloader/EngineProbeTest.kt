@@ -1,6 +1,9 @@
 package io.github.andyop21.linkdownloader
 
 import android.content.Context
+import android.media.MediaExtractor
+import android.media.MediaFormat
+import android.media.MediaMuxer
 import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
@@ -10,6 +13,7 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.yausername.youtubedl_android.YoutubeDL
+import com.yausername.youtubedl_android.YoutubeDLException
 import com.yausername.youtubedl_android.YoutubeDLRequest
 import org.json.JSONArray
 import org.json.JSONObject
@@ -28,17 +32,22 @@ import java.util.Locale
  * Instrumentation arguments:
  * - `links`: space-separated public links, one per site. Required; without it the test is skipped.
  * - `update`: `false` skips the yt-dlp update and the second pass. Default `true`.
+ * - `allCandidates`: `true` fetches every candidate format choice instead of stopping at the first
+ *   that works. Default `false`.
  *
- * Links are never logged in full: each one is named by its number and host only, so the log can be
- * quoted in public records.
+ * The probe's own lines name each link by its number and host only. Titles and yt-dlp's messages
+ * still carry video IDs and account names, so read the log before quoting it in public records.
  *
- * The format choice here is deliberately simple and only feeds the probe's own fetch. The
- * production rules live in `FormatPicker` (P03), derived from these results (DEC-003).
+ * The format choice mirrors the picker rules in DEC-003. For diagnosis it tries its candidates in
+ * order until one downloads, and extracts once more when every candidate gets HTTP 403; the
+ * production rules live in `FormatPicker` (P03). Each downloaded file is opened with
+ * MediaExtractor, and each track is offered to MediaMuxer, to show what P03 can join.
  */
 @RunWith(AndroidJUnit4::class)
 class EngineProbeTest {
 
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
+    private var allCandidates = false
 
     @Test
     fun probeLinks() {
@@ -46,6 +55,7 @@ class EngineProbeTest {
         val links = arguments.getString(ARG_LINKS).orEmpty().split(' ').filter { it.isNotBlank() }
         assumeTrue("No '$ARG_LINKS' instrumentation argument; the engine probe is skipped", links.isNotEmpty())
         val update = arguments.getString(ARG_UPDATE)?.toBooleanStrictOrNull() ?: true
+        allCandidates = arguments.getString(ARG_ALL_CANDIDATES)?.toBooleanStrictOrNull() ?: false
 
         val root = File(context.cacheDir, "engine-probe")
         root.deleteRecursively()
@@ -92,16 +102,33 @@ class EngineProbeTest {
             try {
                 probeLink(pass, name, link, File(passDir, "link-${index + 1}"))
             } catch (e: Exception) {
-                val reason = (e.message ?: e.javaClass.name).lines().filter { it.isNotBlank() }.takeLast(3).joinToString(" | ")
-                log("[$pass $name] ERROR ${e.javaClass.simpleName}: $reason")
-                failures += "[$pass $name] $reason"
+                val lines = (e.message ?: e.javaClass.name).lines().filter { it.isNotBlank() }
+                log("[$pass $name] ERROR ${e.javaClass.simpleName}:")
+                lines.forEach { log("[$pass $name]   $it") }
+                failures += "[$pass $name] " + lines.takeLast(1).joinToString()
             }
         }
         return failures
     }
 
+    /**
+     * Extracts and fetches one link. When every candidate fails with HTTP 403 (YouTube sometimes
+     * refuses all the URLs of one extraction), extracts once more and tries again.
+     */
     private fun probeLink(pass: String, name: String, link: String, dir: File) {
         val label = "[$pass $name]"
+        check(dir.mkdirs()) { "cannot create $dir" }
+        val first = extractAndFetch(label, link, File(dir, "attempt-1")) ?: return
+        if (first.message.orEmpty().contains("HTTP Error 403")) {
+            log("$label every candidate got HTTP 403; extracting again")
+            val second = extractAndFetch("$label (re-extracted)", link, File(dir, "attempt-2")) ?: return
+            throw second
+        }
+        throw first
+    }
+
+    /** Returns null when a candidate was fetched, else the last fetch error. */
+    private fun extractAndFetch(label: String, link: String, dir: File): Exception? {
         check(dir.mkdirs()) { "cannot create $dir" }
 
         // Extract
@@ -119,13 +146,31 @@ class EngineProbeTest {
         log("$label ${formats.size} formats:")
         formats.forEach { log("$label   $it") }
 
-        // Pick (probe-only rules; see the class comment)
-        val selection = pickForProbe(formats)
-        log("$label probe picks -f ${selection.spec} (${selection.why})")
-
-        // Fetch from the saved JSON
+        // Pick (the rules proposed in DEC-003), then fetch the first candidate that works
+        val candidates = candidatesForProbe(formats)
+        candidates.forEachIndexed { i, c -> log("$label candidate ${i + 1}: -f ${c.spec} (${c.why})") }
         val infoFile = File(dir, "info.json").apply { writeText(extract.out) }
-        val outDir = File(dir, "out").apply { mkdirs() }
+        var lastError: Exception? = null
+        var fetched = false
+        for ((i, candidate) in candidates.withIndex()) {
+            val outDir = File(dir, "out-${i + 1}").apply { mkdirs() }
+            try {
+                fetch(label, infoFile, candidate, outDir)
+                log("$label fetched candidate ${i + 1}")
+                fetched = true
+                outDir.deleteRecursively()
+                if (!allCandidates) return null
+            } catch (e: YoutubeDLException) {
+                val reason = e.message.orEmpty().lines().lastOrNull { it.isNotBlank() }
+                log("$label candidate ${i + 1} failed: $reason")
+                outDir.deleteRecursively()
+                lastError = e
+            }
+        }
+        return if (fetched) null else lastError ?: IllegalStateException("no candidates")
+    }
+
+    private fun fetch(label: String, infoFile: File, candidate: Selection, outDir: File) {
         val lines = mutableListOf<String>()
         var lastProgress = -1f
         var progressWentBack = false
@@ -133,7 +178,9 @@ class EngineProbeTest {
         val fetch = YoutubeDL.getInstance().execute(
             YoutubeDLRequest(emptyList())
                 .addOption("--load-info-json", infoFile.absolutePath)
-                .addOption("-f", selection.spec)
+                .addOption("-f", candidate.spec)
+                // No ffmpeg is shipped: never run yt-dlp's ffmpeg fixups (DEC-003).
+                .addOption("--fixup", "never")
                 .addOption("-o", "${outDir.absolutePath}/%(format_id)s.%(ext)s"),
         ) { progress, _, line ->
             if (progress < lastProgress) progressWentBack = true
@@ -149,7 +196,53 @@ class EngineProbeTest {
 
         val files = outDir.listFiles().orEmpty().sortedBy { it.name }
         check(files.isNotEmpty()) { "fetch produced no files" }
-        files.forEach { log("$label file ${it.name} ${it.length()} bytes, container=${sniffContainer(it)}") }
+        files.forEach {
+            log("$label file ${it.name} ${it.length()} bytes, container=${sniffContainer(it)}")
+            log("$label   tracks: ${describeTracks(it, File(outDir.parentFile, "mux-check.mp4"))}")
+        }
+    }
+
+    /**
+     * Lists the file's tracks as MediaExtractor reads them, and whether MediaMuxer accepts each
+     * track's format for an MP4 (addTrack only; no samples are written).
+     */
+    private fun describeTracks(file: File, scratch: File): String {
+        val extractor = MediaExtractor()
+        return try {
+            extractor.setDataSource(file.absolutePath)
+            (0 until extractor.trackCount).joinToString("; ") { index ->
+                val format = extractor.getTrackFormat(index)
+                val mime = format.getString(MediaFormat.KEY_MIME)
+                val size = if (format.containsKey(MediaFormat.KEY_WIDTH)) {
+                    " ${format.getInteger(MediaFormat.KEY_WIDTH)}x${format.getInteger(MediaFormat.KEY_HEIGHT)}"
+                } else {
+                    ""
+                }
+                val duration = if (format.containsKey(MediaFormat.KEY_DURATION)) {
+                    " ${format.getLong(MediaFormat.KEY_DURATION) / 1000} ms"
+                } else {
+                    ""
+                }
+                "$mime$size$duration muxer=${muxerAccepts(format, scratch)}"
+            }.ifEmpty { "no tracks" }
+        } catch (e: Exception) {
+            "MediaExtractor failed: ${e.javaClass.simpleName} ${e.message}"
+        } finally {
+            extractor.release()
+            scratch.delete()
+        }
+    }
+
+    private fun muxerAccepts(format: MediaFormat, scratch: File): String {
+        val muxer = MediaMuxer(scratch.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+        return try {
+            muxer.addTrack(format)
+            "yes"
+        } catch (e: Exception) {
+            "no (${e.javaClass.simpleName})"
+        } finally {
+            muxer.release()
+        }
     }
 
     private fun logStderr(label: String, step: String, err: String) {
@@ -164,21 +257,57 @@ class EngineProbeTest {
 
     private data class Selection(val spec: String, val why: String)
 
-    private fun pickForProbe(formats: List<Format>): Selection {
-        val rank = compareBy<Format>({ it.height ?: 0.0 }, { it.tbr ?: 0.0 })
-        val video = formats
-            .filter { it.videoOnly && it.vcodec.isMuxableVideo() && (it.height ?: 0.0) <= 1080 }
-            .maxWithOrNull(rank)
-        val audio = formats
-            .filter { it.audioOnly && it.acodec.orEmpty().startsWith("mp4a") }
-            .maxWithOrNull(compareBy { it.tbr ?: 0.0 })
-        if (video != null && audio != null) {
-            return Selection("${video.id},${audio.id}", "H.264/HEVC video-only + AAC audio-only pair")
+    /**
+     * The picker rules of DEC-003, as an ordered list for diagnosis (FormatPicker takes the first):
+     * 1. the best pair of an H.264/HEVC video-only and an AAC audio-only format, with HTTPS video;
+     * 2. the same with HLS video;
+     * 3. the best single format with video and audio.
+     * The 1080 cap applies to the frame's short side; the original audio language beats dubbed
+     * tracks, and DRC audio is avoided; yt-dlp lists formats worst to best, so the later entry wins
+     * a tie.
+     */
+    private fun candidatesForProbe(formats: List<Format>): List<Selection> {
+        val indexed = formats.withIndex().toList()
+        val videos = indexed.filter { it.value.videoOnly && it.value.vcodec.isMuxableVideo() && it.value.withinCap }
+        val audio = indexed
+            .filter { it.value.audioOnly && it.value.acodec.isAac() }
+            .maxWithOrNull(
+                compareBy(
+                    { it.value.languagePreference ?: 0.0 },
+                    { !it.value.isDrc },
+                    { it.value.isHttps },
+                    { it.value.tbr ?: 0.0 },
+                    { it.index },
+                ),
+            )
+        val candidates = mutableListOf<Selection>()
+        if (audio != null) {
+            val httpsVideo = videos.filter { it.value.isHttps }.maxWithOrNull(videoRank)
+            val hlsVideo = videos.filter { it.value.protocol.orEmpty().startsWith("m3u8") }.maxWithOrNull(videoRank)
+            httpsVideo?.let { candidates += Selection("${it.value.id},${audio.value.id}", "HTTPS H.264/HEVC video + AAC audio") }
+            hlsVideo?.let { candidates += Selection("${it.value.id},${audio.value.id}", "HLS H.264/HEVC video + AAC audio") }
         }
-        val single = formats.filter { it.hasBoth }.maxWithOrNull(rank)
-        if (single != null) return Selection(single.id, "best single format with video and audio")
-        return Selection("best", "no pair and no single with both; yt-dlp's 'best'")
+        val single = indexed
+            .filter { it.value.hasBoth && it.value.withinCap }
+            .maxWithOrNull(
+                compareBy(
+                    { it.value.shortSide ?: 0.0 },
+                    { it.value.ext == "mp4" },
+                    { it.value.isHttps },
+                    { it.value.tbr ?: 0.0 },
+                    { it.index },
+                ),
+            )
+        single?.let { candidates += Selection(it.value.id, "best single format with video and audio") }
+        if (candidates.isEmpty()) candidates += Selection("best", "no pair and no single with both; yt-dlp's 'best'")
+        return candidates
     }
+
+    private val videoRank = compareBy<IndexedValue<Format>>(
+        { it.value.shortSide ?: 0.0 },
+        { it.value.tbr ?: 0.0 },
+        { it.index },
+    )
 
     /** One entry of the JSON's `formats` array, with the fields the probe logs. */
     private class Format(json: JSONObject) {
@@ -187,7 +316,11 @@ class EngineProbeTest {
         val protocol = json.str("protocol")
         val vcodec = json.str("vcodec")
         val acodec = json.str("acodec")
+        val width = json.num("width")
         val height = json.num("height")
+        val note = json.str("format_note")
+        val language = json.str("language")
+        val languagePreference = json.num("language_preference")
         val tbr = json.num("tbr")
         val filesize = json.num("filesize")
         val filesizeApprox = json.num("filesize_approx")
@@ -196,16 +329,23 @@ class EngineProbeTest {
         val videoOnly get() = vcodec != null && vcodec != "none" && acodec == "none"
         val audioOnly get() = vcodec == "none" && acodec != null && acodec != "none"
         val hasBoth get() = vcodec != "none" && acodec != "none"
+        val isHttps get() = protocol == "https"
+        val isDrc get() = id.contains("drc")
+
+        /** The "p" number: the short side when both sides are known, else the height. */
+        val shortSide: Double? get() = if (width != null && height != null) minOf(width, height) else height
+        val withinCap get() = (shortSide ?: 0.0) <= 1080
 
         override fun toString() =
-            "id=$id ext=$ext proto=$protocol vcodec=$vcodec acodec=$acodec height=${height?.toInt()} " +
-                "tbr=$tbr filesize=${filesize?.toLong()} approx=${filesizeApprox?.toLong()}"
+            "id=$id ext=$ext proto=$protocol vcodec=$vcodec acodec=$acodec " +
+                "size=${width?.toInt()}x${height?.toInt()} note=$note lang=$language/${languagePreference?.toInt()} tbr=$tbr filesize=${filesize?.toLong()} approx=${filesizeApprox?.toLong()}"
     }
 
     private companion object {
         const val TAG = "EngineProbe"
         const val ARG_LINKS = "links"
         const val ARG_UPDATE = "update"
+        const val ARG_ALL_CANDIDATES = "allCandidates"
 
         fun log(message: String) {
             Log.i(TAG, message)
@@ -221,6 +361,8 @@ class EngineProbeTest {
             val codec = this.orEmpty().lowercase()
             return listOf("avc1", "avc3", "h264", "hvc1", "hev1", "h265", "hevc").any { codec.startsWith(it) }
         }
+
+        fun String?.isAac(): Boolean = this != null && (startsWith("mp4a") || this == "aac")
 
         /** Names the container from the file's first bytes, whatever its extension says. */
         fun sniffContainer(file: File): String {

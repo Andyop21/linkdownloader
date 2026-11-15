@@ -59,7 +59,8 @@ deleted when the job ends, whatever the outcome.
 link
  → Extract     yt-dlp -J --no-playlist <link>              → video JSON (title, formats, sizes)
  → Pick        FormatPicker(json)                          → Plan: Single(format) | Pair(video, audio)
- → Fetch       yt-dlp --load-info-json <json> -f <ids>     → one or two files in the job folder
+ → Fetch       yt-dlp --load-info-json <json> -f <ids> --fixup never
+                                                           → one or two files in the job folder
  → Assemble    Pair      → MediaMuxer joins video + audio into one .mp4
                Single ts → MediaMuxer remuxes into .mp4
                Single mp4/webm → used as is
@@ -67,15 +68,26 @@ link
 ```
 
 - **Extract once.** The JSON from the first call is written to the job folder and handed back to
-  yt-dlp with `--load-info-json`, so the site is only queried once.
-- **FormatPicker** (pure, unit-tested) prefers, in order: the best *pair* of a video-only H.264 or
-  HEVC MP4 stream up to 1080p and an AAC (`mp4a`) audio stream; the best *single* MP4 with both
-  video and audio; any single format with both video and audio. It uses height, then bitrate, to
-  rank, and filesize (or filesize_approx) to weight progress. It never selects a format MediaMuxer
-  cannot write. The rules are refined from the probe results in DEC-003.
-- **Progress** comes from youtubedl-android's callback per file. `ProgressTracker` turns the per-file
+  yt-dlp with `--load-info-json`, so the site is only queried once. The one exception: when the
+  fetch fails with HTTP 403 (YouTube sometimes refuses every URL of one extraction), the job
+  extracts once more, picks again and fetches again; a second 403 fails the job.
+- **`--fixup never`** on every fetch. The library always passes `--ffmpeg-location` to a binary the
+  app does not ship, and the bundled yt-dlp crashes in its ffmpeg fixups without this option.
+- **FormatPicker** (pure, unit-tested) returns the first of: the best *pair* of a video-only H.264
+  or HEVC stream (HTTPS before HLS) and an AAC audio-only stream (original language first, DRC
+  last); the best *single* format with both video and audio (MP4 before webm). The 1080p cap
+  applies to the frame's short side, so vertical videos keep their 1080×1920. Ties go to the later
+  entry in yt-dlp's `formats` list. It never selects a format MediaMuxer cannot write; with nothing
+  left the job fails as *not supported*. The full rules, and the probe results they come from, are
+  in [DEC-003](work/decisions/DEC-003-engine-probe-results.md).
+- **Assemble** decides by the file's first bytes, not its extension: HLS formats arrive as MPEG-TS
+  in a file named `.mp4`. A pair is always joined, which also turns YouTube's DASH m4a audio into a
+  normal MP4.
+- **Progress** comes from youtubedl-android's callback, which restarts at 0 % for each file of a
+  pair; each file starts with a `[download] Destination:` line. `ProgressTracker` turns the per-file
   percentages into one overall fraction that never goes backwards: fetch takes 0–95 %, weighted by
-  file size; assemble and save take the rest.
+  `filesize`, else `filesize_approx`, else equally (HLS formats state neither); assemble and save
+  take the rest.
 - **Cancel** destroys the yt-dlp process by its process ID, then deletes the job folder and any
   pending MediaStore entry.
 
