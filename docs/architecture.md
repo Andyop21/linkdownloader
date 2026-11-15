@@ -33,6 +33,12 @@ Why: [DEC-001](work/decisions/DEC-001-kotlin-compose-ytdlp.md) (stack) and
   native libraries must be extracted at install time: `packaging.jniLibs.useLegacyPackaging = true`
   in the app module. AGP writes `android:extractNativeLibs="true"` into the packaged manifest from
   that setting; the source manifest does not carry the attribute (AGP warns when it does).
+- Release build: signed with the key named in `keystore.properties` (outside git; without it the
+  build stops at `checkReleaseSigning`), shrunk with R8 and resource shrinking. AndroidX,
+  WorkManager, Compose and kotlinx.serialization bring their own R8 rules; `app/proguard-rules.pro`
+  adds youtubedl-android's (the library ships none): the library kept whole, Jackson's annotations
+  and optional handlers, Commons Compress's ZIP extra fields, and the app's serializers. Versions:
+  `versionCode = major*10000 + minor*100 + patch` ([development.md](development.md) § *Versions*).
 
 ## Code layout
 
