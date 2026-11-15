@@ -1,0 +1,6 @@
+#!/bin/sh
+# Removes AI attribution lines from the commit message (AGENTS.md / CLAUDE.md).
+# Enabled by `bash scripts/attribution.sh install`, which scripts/publish.sh also runs.
+script="$(git rev-parse --show-toplevel)/scripts/attribution.sh"
+[ -f "$script" ] || exit 0
+exec bash "$script" strip "$1"
