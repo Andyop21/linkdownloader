@@ -13,6 +13,10 @@ Numbers are three digits, assigned in order, never reused. A bug stays in `bugs/
 
 ## Open bugs
 
+None.
+
+## Fixed bugs
+
 | ID | Title |
 |---|---|
 | [BUG-001](bugs/BUG-001-finish-prompt-rewrites-examples.md) | `finish-prompt.sh` rewrites the example lines that name the finished prompt |

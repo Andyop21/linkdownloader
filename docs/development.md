@@ -153,6 +153,7 @@ A signed release APK uses a keystore kept **outside** the repository. Its path a
 | `bash scripts/publish.sh` | Pushes `worktree` to origin after checking it. Run after every commit. |
 | `bash scripts/promote.sh` | Fast-forwards `master` to `worktree`. Only when the owner asks. |
 | `bash scripts/finish-prompt.sh <ID>` | Closes a finished prompt session. |
+| `bash scripts/tests/finish-prompt-test.sh` | Tests `finish-prompt.sh` in a throwaway repository. Run it after changing that script. |
 | `bash scripts/attribution.sh install` | Enables the commit-msg hook. `publish.sh` runs it too. |
 
 On Windows, run them from Git Bash.

@@ -1,7 +1,7 @@
 ---
 id: BUG-001
 title: finish-prompt.sh rewrites the example lines that name the finished prompt
-status: open
+status: fixed
 found: 2026-11-15
 fixed-by:
 ---
@@ -39,3 +39,16 @@ Seen while finishing P01; the three lines were restored by hand in the P01 hando
 is named in the examples, so later prompts are affected only by the untracked-handoff case.
 
 ## Fix
+
+`scripts/finish-prompt.sh` now:
+
+- deletes only a line starting `- [<ID>](not-finished/<name>)` under the `## Queue` heading of
+  `prompts/NEXT-STEPS.md`, outside fenced code blocks;
+- rewrites only Markdown link targets `](<prefix>/not-finished/<name>)` (optionally with an
+  `#anchor`), outside fenced code blocks, so plain mentions and examples keep `not-finished/`;
+- looks for links in tracked and untracked (not ignored) Markdown files, which covers the handoff
+  written in the same session;
+- warns when it finds no queue entry, and matches the index row by `(finished/<name>)` only.
+
+`bash scripts/tests/finish-prompt-test.sh` builds a throwaway repository with all three cases and
+fails on the old script (4 failures); it passes on the fixed one.
