@@ -52,7 +52,7 @@ definition of done. Prompts run in the order of [`NEXT-STEPS.md`](NEXT-STEPS.md)
 | P01 | Finished | [Scaffold the Android project](finished/P01-scaffold-app.md) | Gradle, version catalog, Compose, `app` module, placeholder screen |
 | P02 | Finished | [Prove the engine on a real phone](finished/P02-engine-probe.md) | youtubedl-android without ffmpeg, `EngineProbeTest`, DEC-003 |
 | P03 | Finished | [The download pipeline](finished/P03-download-pipeline.md) | `FormatPicker`, `YtDlp`, `MediaAssembler`, `DownloadsSaver`, `VideoDownloader` |
-| P04 | Not started | [Background downloads](not-finished/P04-background-downloads.md) | `DownloadWorker`, notifications, `UpdateWorker`, `DownloadQueue` |
+| P04 | Finished | [Background downloads](finished/P04-background-downloads.md) | `DownloadWorker`, notifications, `UpdateWorker`, `DownloadQueue` |
 | P05 | Not started | [The main screen](not-finished/P05-main-screen.md) | `LinkParser`, `MainViewModel`, `MainScreen`, About sheet |
 | P06 | Not started | [Look and feel](not-finished/P06-look-and-feel.md) | Theme, Nunito, mascot, motion, app icon |
 | P07 | Not started | [Release 1.0.0](not-finished/P07-release.md) | Signing, R8, release test pass, public-ready docs |
