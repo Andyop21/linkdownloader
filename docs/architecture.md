@@ -47,25 +47,42 @@ One Gradle module, `app`. Packages under `io.github.andyop21.linkdownloader`:
 | `download` | The download pipeline (below), `DownloadWorker`, `UpdateWorker` and the notifications |
 
 Dependencies point inward: `ui` uses `link` and `download`; `link` uses nothing. Pure-Kotlin parts
-(`LinkParser`, `FormatPicker`, `FailureClassifier`, `FileNamer`, `ProgressTracker`) take no Android
-types, so they are tested on the JVM.
+(`LinkParser`, `VideoJson`, `FormatPicker`, `FailureClassifier`, `FileNamer`, `ProgressTracker`,
+`Container`) take no Android types, so they are tested on the JVM.
 
 ## Download pipeline
 
-All steps run inside `DownloadWorker`, in a per-job folder under the app's cache directory that is
-deleted when the job ends, whatever the outcome.
+`VideoDownloader.download(link, jobId, onEvent)` is the one entry point; `DownloadWorker` calls it.
+It reports `Preparing`, `TitleKnown(title)`, `Progress(fraction)` and `Saving`, and returns
+`Saved(uri, fileName, title)` or `Failed(reason)`. Every step runs off the main thread, in a
+per-job folder, `cache/jobs/<jobId>`, that is deleted when the job ends, whatever the outcome.
 
 ```text
 link
- → Extract     yt-dlp -J --no-playlist <link>              → video JSON (title, formats, sizes)
- → Pick        FormatPicker(json)                          → Plan: Single(format) | Pair(video, audio)
- → Fetch       yt-dlp --load-info-json <json> -f <ids> --fixup never
-                                                           → one or two files in the job folder
- → Assemble    Pair      → MediaMuxer joins video + audio into one .mp4
-               Single ts → MediaMuxer remuxes into .mp4
-               Single mp4/webm → used as is
- → Save        DownloadsSaver: MediaStore Downloads entry (IS_PENDING while written) → content Uri
+ → Check       no network                                  → Failed(NoInternet), nothing started
+ → Extract     YtDlp: yt-dlp -J --no-playlist <link>       → info.json in the job folder → VideoJson
+ → Pick        FormatPicker.pick(video)                    → Plan: Single(format) | Pair(video, audio)
+ → Fetch       YtDlp: yt-dlp --load-info-json info.json -f <ids> --fixup never --no-mtime
+                      -o <job>/%(format_id)s.%(ext)s       → one or two files in the job folder
+ → Assemble    Pair             → MediaAssembler.join: video + audio into one MP4
+   and save    Single MPEG-TS   → MediaAssembler.remux into MP4
+               Single MP4/WebM  → copied as is
+               DownloadsSaver: a pending MediaStore Downloads entry; the MP4 is written straight
+               into its file descriptor, then IS_PENDING is cleared → content Uri
 ```
+
+| Class | Does |
+|---|---|
+| `VideoDownloader` | Runs the steps, the 403 retry, cleanup and cancellation; maps every error to a `FailureReason` |
+| `YtDlp` | Calls youtubedl-android on `Dispatchers.IO`; turns its errors into `DownloadException`s and destroys the process on cancel |
+| `VideoJson` | The few fields of yt-dlp's JSON the pipeline reads (kotlinx.serialization, unknown keys ignored) |
+| `FormatPicker` | Chooses the plan (DEC-003) |
+| `ProgressTracker` | Turns yt-dlp's per-file lines into one overall fraction |
+| `Container` | Names a file's real container from its first bytes |
+| `MediaAssembler` | Joins or remuxes with `MediaExtractor` + `MediaMuxer`, keeping the video's rotation |
+| `DownloadsSaver` | Creates, writes, publishes or deletes the `Downloads/` entry |
+| `FileNamer` | Turns the title into the file name |
+| `FailureClassifier` | Maps yt-dlp's error text and exceptions to a `FailureReason` |
 
 - **Extract once.** The JSON from the first call is written to the job folder and handed back to
   yt-dlp with `--load-info-json`, so the site is only queried once. The one exception: when the
@@ -78,18 +95,32 @@ link
   last); the best *single* format with both video and audio (MP4 before webm). The 1080p cap
   applies to the frame's short side, so vertical videos keep their 1080×1920. Ties go to the later
   entry in yt-dlp's `formats` list. It never selects a format MediaMuxer cannot write; with nothing
-  left the job fails as *not supported*. The full rules, and the probe results they come from, are
-  in [DEC-003](work/decisions/DEC-003-engine-probe-results.md).
-- **Assemble** decides by the file's first bytes, not its extension: HLS formats arrive as MPEG-TS
-  in a file named `.mp4`. A pair is always joined, which also turns YouTube's DASH m4a audio into a
-  normal MP4.
-- **Progress** comes from youtubedl-android's callback, which restarts at 0 % for each file of a
-  pair; each file starts with a `[download] Destination:` line. `ProgressTracker` turns the per-file
-  percentages into one overall fraction that never goes backwards: fetch takes 0–95 %, weighted by
-  `filesize`, else `filesize_approx`, else equally (HLS formats state neither); assemble and save
-  take the rest.
-- **Cancel** destroys the yt-dlp process by its process ID, then deletes the job folder and any
-  pending MediaStore entry.
+  left the job fails as *not supported*. A single MP4 needs H.264/HEVC video and AAC audio, or codecs
+  the site left unstated; a single WebM is kept as is, whatever its codecs. Only formats yt-dlp
+  downloads without ffmpeg are considered (`https`, `http`, `m3u8_native`, `m3u8`,
+  `http_dash_segments`). The full rules, and the probe results they come from, are in
+  [DEC-003](work/decisions/DEC-003-engine-probe-results.md).
+- **Assemble** decides by the file's first bytes (`Container`), not its extension: HLS formats
+  arrive as MPEG-TS in a file named `.mp4`. A pair is always joined, which also turns YouTube's DASH
+  m4a audio into a normal MP4. Samples are copied, never re-encoded, interleaved by time.
+- **Save.** The entry is created in `Download/` with `IS_PENDING = 1`, the name from `FileNamer`
+  and MIME type `video/mp4` (or `video/webm`), so no other app sees a half-written file. MediaStore
+  may add ` (1)` to a name that is taken; the name it chose is the one returned.
+- **File name.** The title with `/ \ : * ? " < > |` and control characters removed, whitespace
+  collapsed, emoji kept, cut to 100 code points and 200 UTF-8 bytes; `<site>-<video id>` when the
+  title leaves nothing, and `video` when there is not even that.
+- **Progress.** youtubedl-android's callback restarts at 0 % for each file of a pair, and each file
+  starts with a `[download] Destination:` line. The callback also repeats its last percentage on
+  lines that carry none, so `ProgressTracker` reads the percentage from the line itself and ignores
+  HLS's opening `100.0% … (frag 0/N)` line. It turns the per-file percentages into one overall
+  fraction that never goes backwards: fetch takes 0–95 %, weighted by `filesize`, else
+  `filesize_approx`, else equally (HLS formats state neither); assembling and writing take 95–99 %;
+  the published entry is 100 %. A fetch after a fresh extraction starts again from zero, so
+  `VideoDownloader` only passes on progress that is ahead of the last value sent.
+- **Cancel.** Cancelling the coroutine that runs `download` destroys the yt-dlp process
+  (`destroyProcessById(jobId)`), stops the muxer or the copy between samples, deletes the pending
+  MediaStore entry and the job folder, and ends in the `CancellationException`. If the process is
+  killed outright, MediaStore removes the stale pending entry itself after about a week.
 
 `MainViewModel` exposes one `UiState`: `Idle`, `NoLink`, `Preparing`, `Downloading(title, progress)`,
 `Saving(title)`, `Done(title, fileName, uri)`, `Failed(reason)`. It enqueues work and maps
@@ -100,8 +131,17 @@ cold start is always `Idle` (product B9).
 ## Failure handling
 
 `FailureClassifier` (pure, unit-tested) maps yt-dlp's error text to the product's reasons: no
-internet, not supported, unavailable, needs login, unknown. A network check before the job starts
-gives *no internet* immediately. Raw error text goes to Logcat only, never to the screen.
+internet, not supported, unavailable, needs login, unknown. When the text holds `ERROR:` lines it
+reads only those, so warnings never decide. It checks, in order: network errors (*no internet*),
+the strong signs of a private, removed, age- or region-locked video (*unavailable*, even though
+those messages also mention signing in), login and bot checks (*needs login*), unsupported links
+(*not supported*), and other "not available" wordings (*unavailable*); anything else is *unknown*.
+A network exception anywhere in an exception's cause chain is *no internet*.
+
+A network check before the job starts gives *no internet* immediately, and a job that fails as
+*unknown* while the phone is offline is reported as *no internet*. A second HTTP 403 after the
+fresh extraction is *unknown*. Raw error text goes to Logcat only (tags `YtDlp` and
+`VideoDownloader`), never to the screen.
 
 ## Background work
 
@@ -150,17 +190,22 @@ recorded here. Dynamic colour is off: the app keeps its own palette.
 ## Dependencies
 
 Keep them few: AndroidX core, activity-compose, lifecycle, Compose BOM (Material 3),
-WorkManager, kotlinx.serialization, youtubedl-android `library`, and test libraries. Every one is
+WorkManager, kotlinx.serialization (with its Kotlin compiler plugin), kotlinx.coroutines,
+youtubedl-android `library`, and test libraries. Every one is
 pinned in `gradle/libs.versions.toml`. Adding a library or bumping a major version is recorded as a
 decision in `work/decisions/`.
 
 ## Tests
 
-- **JVM unit tests:** `LinkParser`, `FormatPicker`, `FailureClassifier`, `FileNamer`,
-  `ProgressTracker` and `MainViewModel`'s state mapping. No network.
+- **JVM unit tests:** `LinkParser`, `VideoJson`, `FormatPicker`, `FailureClassifier`, `FileNamer`,
+  `ProgressTracker`, `Container` and `MainViewModel`'s state mapping. No network. `FormatPicker`
+  runs against trimmed format lists per site in `app/src/test/resources/formats/` (format fields
+  only: neutral IDs and titles, no URLs).
 - **Engine probe:** an instrumented test, `EngineProbeTest`, that runs real extractions and
   downloads on a device for links passed as instrumentation arguments. It is skipped when no links
-  are passed, so it never runs by accident. Use it when a site seems broken. Commands in
+  are passed, so it never runs by accident. Use it when a site seems broken. With `pipeline=true`
+  it runs `VideoDownloader` itself on the links, checks the saved files, and can check that a
+  cancel leaves nothing behind. Commands in
   [development.md](development.md).
 - **By hand:** the screen, the notification and the five must-work sites, on a device; each
   session's handoff says what was tried.

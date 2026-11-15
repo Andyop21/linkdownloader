@@ -24,3 +24,4 @@ Numbers are three digits, assigned in order, never reused. A bug stays in `bugs/
 | [DEC-001](decisions/DEC-001-kotlin-compose-ytdlp.md) | Kotlin, Jetpack Compose and youtubedl-android |
 | [DEC-002](decisions/DEC-002-no-ffmpeg-merge-with-mediamuxer.md) | No ffmpeg; pick formats in Kotlin and join them with MediaMuxer |
 | [DEC-003](decisions/DEC-003-engine-probe-results.md) | Engine probe results and the picker rules for P03 |
+| [DEC-004](decisions/DEC-004-serialization-and-coroutines.md) | kotlinx.serialization for yt-dlp's JSON, kotlinx.coroutines declared directly |

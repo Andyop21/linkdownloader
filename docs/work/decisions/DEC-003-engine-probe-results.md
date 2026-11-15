@@ -265,3 +265,12 @@ yt-dlp still handles YouTube (with `--fixup never`), X and TikTok.
   yt-dlp itself does.
 - **Letting yt-dlp's fixups run**: crash on the bundled yt-dlp, warnings only on the updated one,
   and nothing they would do is needed once `MediaMuxer` assembles the file.
+
+## Note from P03
+
+Rule 2 asks a single format for a video codec that is "muxable or unknown", while *Only webm*
+keeps a single WebM as is. P03 reads the codec rule as applying to MP4 singles only, since only
+they may need a remux (an HLS single is MPEG-TS): an MP4 single needs H.264/HEVC video **and** AAC
+audio, or codecs left unstated; a WebM single is kept whatever its codecs. P03 also considers only
+formats yt-dlp downloads without ffmpeg (`https`, `http`, `m3u8_native`, `m3u8`,
+`http_dash_segments`). On the phone, every plan P03 picked matched the *Should pick* rows above.

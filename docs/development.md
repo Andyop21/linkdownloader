@@ -78,6 +78,24 @@ Besides the formats, the log shows each downloaded file's real container (read f
 bytes), its tracks as `MediaExtractor` sees them, and whether `MediaMuxer` accepts each track for an
 MP4.
 
+### The whole pipeline
+
+`-Pandroid.testInstrumentationRunnerArguments.pipeline=true` runs the app's own `VideoDownloader`
+on every link instead, after the update (unless `update=false`), exactly as a download from the app
+would. For each link it logs the events with their times, the saved file's name, size, real
+container and tracks, and it fails if a link fails, if the progress ever goes backwards or does not
+end at 1, or if a job folder is left behind. Two more arguments go with it:
+
+| Argument | Does |
+|---|---|
+| `keep=true` | Leaves the saved videos in `Downloads/`, so they can be played in the gallery or Files app. They stay there after the test uninstalls the app; delete them by hand (Files app, or `adb shell rm "/sdcard/Download/<name>"`). Without it the probe deletes them. |
+| `cancel=true` | Also downloads the first link twice more and cancels it, once during the fetch (past 20 %) and once while it is being written to `Downloads/` (past 95 %), and checks that no `Downloads/` entry, job folder or yt-dlp process is left. Put a link with a large file first (a YouTube video), so the fetch passes 20 % in more than one step. |
+
+Read the pipeline's own lines with `adb logcat -d -s EngineProbe VideoDownloader YtDlp`; they show
+the plan it picked and how long each step took. Pass links without their tracking parameters
+(`?utm_source=…`, `&s=20`): the sites do not need them, and the arguments pass through a shell on
+the device.
+
 Use public videos only, and never commit the links you probed with. Sites rate-limit repeated
 requests (Instagram did after eight extractions in eleven minutes), so probe sparingly.
 
