@@ -30,7 +30,9 @@ Why: [DEC-001](work/decisions/DEC-001-kotlin-compose-ytdlp.md) (stack) and
   on a PC emulator. Lint's `ChromeOsAbiSupport` check is suppressed on that one release line, since
   ChromeOS is not a target.
 - youtubedl-android runs Python and QuickJS as executables from the native library directory, so
-  the app sets `android:extractNativeLibs="true"` and `packaging.jniLibs.useLegacyPackaging = true`.
+  native libraries must be extracted at install time: `packaging.jniLibs.useLegacyPackaging = true`
+  in the app module. AGP writes `android:extractNativeLibs="true"` into the packaged manifest from
+  that setting; the source manifest does not carry the attribute (AGP warns when it does).
 
 ## Code layout
 

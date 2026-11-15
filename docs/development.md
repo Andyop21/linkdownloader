@@ -60,8 +60,18 @@ links are passed:
   "-Pandroid.testInstrumentationRunnerArguments.links=https://example.com/a https://example.com/b"
 ```
 
-Results print to Logcat under the tag `EngineProbe`. Use public videos only, and never commit the
-links you probed with.
+Results print to Logcat under the tag `EngineProbe`; links appear there by number and host only.
+Read them with `adb logcat -d -s EngineProbe` (clear first with `adb logcat -c`). With more than one
+device connected, pick one with `ANDROID_SERIAL=<serial>` before `./gradlew`.
+
+The probe runs every link once with the yt-dlp the app has, then updates yt-dlp
+(`updateYoutubeDL(STABLE)`) and runs every link again. Add
+`-Pandroid.testInstrumentationRunnerArguments.update=false` to skip the update and the second pass.
+The update is kept by the app; `adb shell pm clear io.github.andyop21.linkdownloader` returns it to
+the bundled yt-dlp. The test fails if any link fails in any pass, and deletes everything it
+downloaded either way.
+
+Use public videos only, and never commit the links you probed with.
 
 ## Emulator
 

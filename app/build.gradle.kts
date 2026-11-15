@@ -13,6 +13,8 @@ android {
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -41,6 +43,14 @@ android {
         compose = true
     }
 
+    packaging {
+        jniLibs {
+            // youtubedl-android runs Python and QuickJS as executables from nativeLibraryDir,
+            // so native libraries must be extracted at install time.
+            useLegacyPackaging = true
+        }
+    }
+
     lint {
         abortOnError = true
         warningsAsErrors = true
@@ -64,5 +74,10 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.youtubedl.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }
