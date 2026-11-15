@@ -1,25 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Small notification icon: the mascot's white silhouette with its eyes and smile cut out
-     (the same shapes as ic_launcher_monochrome.xml, scaled to 24 dp). -->
+<!-- Small notification icon: the launcher's arrow into a tray, in white, at 24 dp. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <group
-        android:scaleX="0.25"
-        android:scaleY="0.25"
-        android:translateX="-0.5"
-        android:translateY="-0.125">
-        <path
-            android:pathData="M50,5L50,18.5M43.5,12L50,18.5L56.5,12"
-            android:strokeWidth="7"
-            android:strokeColor="#FFFFFFFF"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
-        <path
-            android:fillColor="#FFFFFFFF"
-            android:fillType="evenOdd"
-            android:pathData="M50,24C74,24 90,40 90,62C90,82 74,92 50,92C26,92 10,82 10,62C10,40 26,24 50,24ZM32,56a6,6 0,1 0,12 0a6,6 0,1 0,-12 0ZM56,56a6,6 0,1 0,12 0a6,6 0,1 0,-12 0ZM42,65Q50,76 58,65Q50,70 42,65Z" />
-    </group>
+    <path
+        android:pathData="M12,3.5L12,14M7.75,9.75L12,14L16.25,9.75"
+        android:strokeWidth="2.25"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M5,14L5,17A3,3 0 0,0 8,20L16,20A3,3 0 0,0 19,17L19,14"
+        android:strokeWidth="2.25"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>

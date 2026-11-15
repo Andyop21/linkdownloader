@@ -2,7 +2,7 @@
 id: DEC-007
 title: "Look and feel: one variable Nunito file, a deeper lavender, drawn icons and a contrast test"
 date: 2026-11-15
-status: accepted
+status: superseded in part by DEC-008
 ---
 
 # DEC-007 — Look and feel: one variable Nunito file, a deeper lavender, drawn icons and a contrast test

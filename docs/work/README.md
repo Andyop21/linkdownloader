@@ -31,4 +31,5 @@ None.
 | [DEC-004](decisions/DEC-004-serialization-and-coroutines.md) | kotlinx.serialization for yt-dlp's JSON, kotlinx.coroutines declared directly |
 | [DEC-005](decisions/DEC-005-posts-with-several-videos.md) | Posts with several videos: offer a choice, then download the chosen ones; Reddit dropped |
 | [DEC-006](decisions/DEC-006-workmanager-background-downloads.md) | WorkManager for background downloads; the yt-dlp update never blocks or fails a download |
-| [DEC-007](decisions/DEC-007-look-and-feel-tokens.md) | Look and feel: one variable Nunito file, a deeper lavender, drawn icons and a contrast test |
+| [DEC-007](decisions/DEC-007-look-and-feel-tokens.md) | Look and feel: one variable Nunito file, a deeper lavender, drawn icons and a contrast test (superseded in part by DEC-008) |
+| [DEC-008](decisions/DEC-008-enamel-derived-look.md) | A professional look from the Enamel design tokens: no mascot, Lato, cool grays and one blue |

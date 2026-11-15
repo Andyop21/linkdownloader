@@ -42,7 +42,7 @@ larger is filed in `docs/work/bugs/` and listed in the handoff for the owner to 
 6. **Public-ready docs.**
    - `README.md`: what it is, one screenshot (light) without personal content, how to install the
      APK, how to build, supported sites, responsible-use note, credits (yt-dlp,
-     youtubedl-android, Nunito).
+     youtubedl-android, Lato).
    - `CHANGELOG.md`: move *Unreleased* into `## [1.0.0] - <date>`.
    - Check every doc in `docs/` against the code one last time and fix what drifted.
    - Ask the owner which license to use. Point out that youtubedl-android is GPL-3.0 (DEC-001),

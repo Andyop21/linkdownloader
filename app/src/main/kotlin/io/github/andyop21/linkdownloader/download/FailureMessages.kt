@@ -3,7 +3,7 @@ package io.github.andyop21.linkdownloader.download
 import androidx.annotation.StringRes
 import io.github.andyop21.linkdownloader.R
 
-/** The friendly message for this reason (docs/product.md § Failure reasons). No technical text, ever. */
+/** The plain message for this reason (docs/product.md § Failure reasons). No technical text, ever. */
 @get:StringRes
 val FailureReason.messageRes: Int
     get() = when (this) {
@@ -12,4 +12,15 @@ val FailureReason.messageRes: Int
         FailureReason.Unavailable -> R.string.failure_unavailable
         FailureReason.NeedsLogin -> R.string.failure_needs_login
         FailureReason.Unknown -> R.string.failure_unknown
+    }
+
+/** The short title for this reason, above [messageRes] on the status card. */
+@get:StringRes
+val FailureReason.titleRes: Int
+    get() = when (this) {
+        FailureReason.NoInternet -> R.string.failure_no_internet_title
+        FailureReason.NotSupported -> R.string.failure_not_supported_title
+        FailureReason.Unavailable -> R.string.failure_unavailable_title
+        FailureReason.NeedsLogin -> R.string.failure_needs_login_title
+        FailureReason.Unknown -> R.string.failure_unknown_title
     }

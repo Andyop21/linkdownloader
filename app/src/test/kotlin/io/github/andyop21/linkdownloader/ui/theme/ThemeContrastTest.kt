@@ -1,7 +1,7 @@
 package io.github.andyop21.linkdownloader.ui.theme
 
-import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -10,7 +10,8 @@ import kotlin.math.min
 
 /**
  * Every text/background pair the screen draws, in both themes, against WCAG AA: 4.5:1 for text,
- * 3:1 for large text, icons and the progress bar. Disabled controls are exempt, as in WCAG.
+ * 3:1 for icons, control edges and the progress bar. A translucent colour is laid over what it
+ * sits on first. Disabled controls are exempt, as in WCAG.
  */
 class ThemeContrastTest {
 
@@ -19,46 +20,51 @@ class ThemeContrastTest {
     private fun text(name: String, fg: Color, bg: Color) = Pair(name, fg, bg, TEXT)
     private fun graphic(name: String, fg: Color, bg: Color) = Pair(name, fg, bg, GRAPHIC)
 
-    private fun pairs(s: ColorScheme, mascot: MascotColors): List<Pair> {
-        val cards = StatusTone.entries.flatMap { tone ->
-            val c = cardColors(tone, s)
-            listOf(
-                text("$tone card title", c.content, c.container),
-                text("$tone card detail", c.detail, c.container),
-                text("$tone card text button", c.action, c.container),
-            )
-        }
-        val working = cardColors(StatusTone.Working, s)
-        return cards + listOf(
-            text("app name and screen text", s.onBackground, s.background),
-            text("Paste and Open labels", s.onPrimary, s.primary),
-            text("bar text", s.onSurface, s.surfaceContainerHighest),
-            text("bar label and placeholder", s.onSurfaceVariant, s.surfaceContainerHighest),
-            text("bar label, focused", s.primary, s.surfaceContainerHighest),
-            graphic("bar focus ring", s.primary, s.background),
-            graphic("bar link icon", s.onSurfaceVariant, s.surfaceContainerHighest),
-            text("sheet text", s.onSurface, s.surfaceContainerLow),
-            text("sheet secondary text", s.onSurfaceVariant, s.surfaceContainerLow),
-            text("sheet text button", s.primary, s.surfaceContainerLow),
-            text("snackbar", s.inverseOnSurface, s.inverseSurface),
-            graphic("progress on its track", working.progress, working.track),
-            graphic("progress on the card", working.progress, working.container),
-            graphic("selected thumbnail border", s.primary, s.surfaceContainerLow),
-            graphic("selected mark tick", s.onPrimary, s.primary),
-            graphic("mascot face", mascot.ink, mascot.body),
-            graphic("mascot face on its progress fill", mascot.ink, mascot.fill),
-            graphic("mascot arrow", mascot.arrow, s.background),
+    private fun pairs(c: AppColors): List<Pair> {
+        val tiles = Tone.entries.map { tone -> graphic("$tone tile icon", c.ink(tone), c.soft(tone)) }
+        val track = c.track.compositeOver(c.surface)
+        return tiles + listOf(
+            text("title on the canvas", c.ink, c.canvas),
+            text("lead on the canvas", c.muted, c.canvas),
+            text("card title", c.ink, c.surface),
+            text("card eyebrow and detail", c.muted, c.surface),
+            text("card percentage", c.ink2, c.surface),
+            text("field text", c.ink, c.surface),
+            text("field placeholder", c.faint, c.surface),
+            text("field text while a download runs", c.muted, c.surface),
+            graphic("field edge on the canvas", c.controlBorder, c.canvas),
+            graphic("field edge on its surface", c.controlBorder, c.surface),
+            graphic("field edge with focus", c.primary, c.canvas),
+            graphic("field link icon", c.faint, c.surface),
+            graphic("clear button icon", c.ink2, c.surfaceSubtle),
+            text("main and primary button labels", c.onPrimary, c.primaryFill),
+            text("primary button labels, pressed", c.onPrimary, c.primaryFillPressed),
+            text("outlined button labels", c.ink, c.surface),
+            text("outlined button labels, pressed", c.ink, c.press.compositeOver(c.surface)),
+            graphic("progress on its track", c.primary, track),
+            graphic("live dot", c.primary, c.surface),
+            text("sheet text", c.ink, c.surface),
+            text("sheet secondary text", c.muted, c.surface),
+            text("about list labels", c.ink2, c.canvas),
+            text("about list values", c.ink, c.canvas),
+            text("about result", c.ink2, c.surface),
+            graphic("about result dot, success", c.success, c.surface),
+            graphic("about result dot, warning", c.warning, c.surface),
+            graphic("selected thumbnail edge", c.primary, c.surface),
+            graphic("selected mark tick", c.onPrimary, c.primaryFill),
+            text("snackbar", c.overlayInk, c.overlay),
+            text("snackbar action", c.overlayAction, c.overlay),
         )
     }
 
     @Test
-    fun `light theme passes WCAG AA`() = check("light", LightColors, LightMascot)
+    fun `light theme passes WCAG AA`() = check("light", AppColors.Light)
 
     @Test
-    fun `dark theme passes WCAG AA`() = check("dark", DarkColors, DarkMascot)
+    fun `dark theme passes WCAG AA`() = check("dark", AppColors.Dark)
 
-    private fun check(theme: String, scheme: ColorScheme, mascot: MascotColors) {
-        val failures = pairs(scheme, mascot).mapNotNull { p ->
+    private fun check(theme: String, colors: AppColors) {
+        val failures = pairs(colors).mapNotNull { p ->
             val ratio = contrast(p.foreground, p.background)
             if (ratio < p.minimum) "${p.name}: %.2f < %.1f".format(ratio, p.minimum) else null
         }

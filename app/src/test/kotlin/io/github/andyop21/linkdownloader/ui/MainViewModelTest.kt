@@ -191,6 +191,7 @@ class MainViewModelTest {
         vm.onCancel()
         assertEquals(listOf(id), downloads.cancelled)
         assertEquals(Status.Idle, vm.status())
+        assertEquals("", vm.state.value.bar)
 
         // WorkManager still reports it running for a moment, then cancelled: the screen stays idle.
         downloads.emit(DownloadJob(id, JobState.Running, DownloadProgress(DownloadStage.Downloading, "Clip", 1, 1, 0.31)))
@@ -208,6 +209,7 @@ class MainViewModelTest {
 
         downloads.emit(DownloadJob(id, JobState.Cancelled))
         assertEquals(Status.Idle, vm.status())
+        assertEquals("", vm.state.value.bar)
         assertTrue(downloads.cancelled.isEmpty())
     }
 
@@ -233,6 +235,112 @@ class MainViewModelTest {
 
         downloads.emit(DownloadJob(id, JobState.Succeeded, result = DownloadResult.Saved(listOf(video), 1, 0)))
         assertEquals(Status.Done(id, listOf(video), saved = 1, failed = 0), vm.status())
+        assertEquals("", vm.state.value.bar)
+    }
+
+    // B12
+
+    @Test
+    fun `pasting the link just saved does not download it twice`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        val video = DownloadResult.Video("content://media/1", "Clip.mp4", "Clip")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Succeeded, result = DownloadResult.Saved(listOf(video), 1, 0)))
+
+        vm.onPaste("Look at this https://example.com/v/1")
+        assertEquals(Status.AlreadySaved(listOf(video), saved = 1), vm.status())
+        assertEquals("https://example.com/v/1", vm.state.value.bar)
+        assertEquals(1, downloads.started.size)
+
+        vm.onSubmit("https://example.com/v/1")
+        assertEquals(1, downloads.started.size)
+    }
+
+    @Test
+    fun `download again saves the same link a second time`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Succeeded, result = DownloadResult.Saved(emptyList(), 1, 0)))
+        vm.onPaste("https://example.com/v/1")
+
+        vm.onDownloadAgain()
+        assertEquals(listOf(Start("https://example.com/v/1", null), Start("https://example.com/v/1", null)), downloads.started)
+        assertEquals(Status.Preparing, vm.status())
+    }
+
+    @Test
+    fun `download again does nothing unless the link was already saved`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Succeeded, result = DownloadResult.Saved(emptyList(), 1, 0)))
+
+        vm.onDownloadAgain()
+        assertEquals(1, downloads.started.size)
+    }
+
+    @Test
+    fun `another link after a save downloads as usual`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Succeeded, result = DownloadResult.Saved(emptyList(), 1, 0)))
+
+        vm.onPaste("https://example.com/v/2")
+        assertEquals("https://example.com/v/2", downloads.started.last().link)
+        assertEquals(Status.Preparing, vm.status())
+    }
+
+    @Test
+    fun `a job adopted from an earlier run is not remembered as saved`() {
+        val id = UUID.randomUUID()
+        downloads.emit(DownloadJob(id, JobState.Running))
+        val vm = viewModel()
+        downloads.emit(DownloadJob(id, JobState.Succeeded, result = DownloadResult.Saved(emptyList(), 1, 0)))
+
+        vm.onPaste("https://example.com/v/1")
+        assertEquals(Status.Preparing, vm.status())
+    }
+
+    // B13
+
+    @Test
+    fun `clear empties the bar and dismisses the message`() {
+        val vm = viewModel()
+        vm.onBarChanged("not a link")
+        vm.onSubmit("not a link")
+        vm.onClear()
+
+        assertEquals(UiState(), vm.state.value)
+    }
+
+    @Test
+    fun `clear dismisses a failure`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Failed, result = DownloadResult.Failed(FailureReason.NoInternet)))
+        vm.onClear()
+
+        assertEquals("", vm.state.value.bar)
+        assertEquals(Status.Idle, vm.status())
+    }
+
+    @Test
+    fun `clear does nothing while a download runs`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        vm.onClear()
+
+        assertEquals("https://example.com/v/1", vm.state.value.bar)
+        assertEquals(Status.Preparing, vm.status())
+    }
+
+    @Test
+    fun `editing the bar after a result returns to idle`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Failed, result = DownloadResult.Failed(FailureReason.Unknown)))
+        vm.onBarChanged("https://example.com/v/")
+
+        assertEquals(Status.Idle, vm.status())
     }
 
     @Test
@@ -274,6 +382,39 @@ class MainViewModelTest {
             val vm = viewModel()
             vm.onPaste("https://example.com/v/1")
             downloads.emit(DownloadJob(downloads.lastId, JobState.Failed, result = DownloadResult.Failed(reason)))
+            assertEquals(Status.Failed(reason), vm.status())
+        }
+    }
+
+    @Test
+    fun `a failed download keeps its link in the bar`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Failed, result = DownloadResult.Failed(FailureReason.NoInternet)))
+        assertEquals("https://example.com/v/1", vm.state.value.bar)
+    }
+
+    @Test
+    fun `try again starts the same link again`() {
+        val vm = viewModel()
+        vm.onPaste("https://example.com/v/1")
+        downloads.emit(DownloadJob(downloads.lastId, JobState.Failed, result = DownloadResult.Failed(FailureReason.NoInternet)))
+
+        vm.onRetry()
+        assertEquals(listOf(Start("https://example.com/v/1", null), Start("https://example.com/v/1", null)), downloads.started)
+        assertEquals(Status.Preparing, vm.status())
+    }
+
+    @Test
+    fun `try again does nothing for a failure that will not pass`() {
+        listOf(FailureReason.NotSupported, FailureReason.Unavailable, FailureReason.NeedsLogin).forEach { reason ->
+            val vm = viewModel()
+            vm.onPaste("https://example.com/v/1")
+            val before = downloads.started.size
+            downloads.emit(DownloadJob(downloads.lastId, JobState.Failed, result = DownloadResult.Failed(reason)))
+
+            vm.onRetry()
+            assertEquals(before, downloads.started.size)
             assertEquals(Status.Failed(reason), vm.status())
         }
     }

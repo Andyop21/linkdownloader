@@ -1,20 +1,25 @@
 package io.github.andyop21.linkdownloader.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -23,7 +28,9 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.andyop21.linkdownloader.R
-import io.github.andyop21.linkdownloader.ui.theme.PillShape
+import io.github.andyop21.linkdownloader.ui.theme.AppTheme
+import io.github.andyop21.linkdownloader.ui.theme.AppType
+import io.github.andyop21.linkdownloader.ui.theme.CardShape
 import io.github.andyop21.linkdownloader.ui.theme.SheetShape
 
 /**
@@ -33,68 +40,97 @@ import io.github.andyop21.linkdownloader.ui.theme.SheetShape
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AboutSheet(appVersion: String, about: AboutState, onUpdate: () -> Unit, onDismiss: () -> Unit) {
+    val colors = AppTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = SheetShape,
+        containerColor = colors.surface,
+        scrimColor = colors.scrim,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = colors.borderStrong) },
     ) {
         AboutSheetContent(appVersion, about, onUpdate)
     }
 }
 
-/** The About sheet's content: the app name, both versions, **Update yt-dlp** and its result. */
+/** The About sheet's content: the app name, both versions in one grouped list, **Update yt-dlp** and its result. */
 @Composable
 fun AboutSheetContent(appVersion: String, about: AboutState, onUpdate: () -> Unit) {
+    val colors = AppTheme.colors
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 20.dp)
             .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
             text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
+            style = AppType.heading,
+            color = colors.ink,
             modifier = Modifier.semantics { heading() },
         )
-        VersionRow(stringResource(R.string.about_app_version), appVersion)
-        VersionRow(
-            stringResource(R.string.about_engine_version),
-            about.engineVersion ?: stringResource(
-                if (about.versionLoading) R.string.about_version_loading else R.string.about_version_unknown,
-            ),
-        )
-        Button(
-            onClick = onUpdate,
-            enabled = about.check != EngineCheck.Checking,
-            shape = PillShape,
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp),
+                .background(colors.canvas, CardShape)
+                .border(1.dp, colors.border, CardShape),
         ) {
-            Text(stringResource(R.string.about_update), style = MaterialTheme.typography.titleMedium)
-        }
-        checkText(about.check)?.let { text ->
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            VersionRow(stringResource(R.string.about_app_version), appVersion)
+            Box(
+                Modifier
+                    .padding(start = 16.dp)
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(colors.border),
             )
+            VersionRow(
+                stringResource(R.string.about_engine_version),
+                about.engineVersion ?: stringResource(
+                    if (about.versionLoading) R.string.about_version_loading else R.string.about_version_unknown,
+                ),
+            )
+        }
+        ActionButton(
+            text = stringResource(R.string.about_update),
+            onClick = onUpdate,
+            enabled = about.check != EngineCheck.Checking,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        checkText(about.check)?.let { text ->
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+            ) {
+                PulseDot(
+                    color = when (about.check) {
+                        EngineCheck.NotChecked -> colors.warning
+                        EngineCheck.Checking -> colors.primary
+                        else -> colors.success
+                    },
+                    pulse = about.check == EngineCheck.Checking,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(text = text, style = AppType.body, color = colors.ink2)
+            }
         }
     }
 }
 
 @Composable
 private fun VersionRow(label: String, value: String) {
+    val colors = AppTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 14.dp)
             .semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-        Text(value, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(label, style = AppType.body, color = colors.ink2, modifier = Modifier.weight(1f))
+        Text(value, style = AppType.value, color = colors.ink)
     }
 }
 

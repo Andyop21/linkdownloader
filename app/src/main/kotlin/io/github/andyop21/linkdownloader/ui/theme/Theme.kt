@@ -7,12 +7,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 
-private val LocalMascotColors = staticCompositionLocalOf { LightMascot }
+private val LocalAppColors = staticCompositionLocalOf { AppColors.Light }
 
 /**
- * The app theme: Material 3 with the app's own light and dark palettes, Nunito, soft shapes, the
- * mascot's colours and whether motion is off ([LocalReducedMotion]). Dynamic colour is off on
- * purpose, so the app keeps its own look on every phone.
+ * The app theme: the app's own light and dark palettes ([AppColors]), Lato, the corner scale and
+ * whether motion is off ([LocalReducedMotion]), with Material 3 told the same colours and type.
+ * Dynamic colour is off on purpose, so the app keeps its own look on every phone.
  */
 @Composable
 fun LinkDownloaderTheme(
@@ -20,12 +20,13 @@ fun LinkDownloaderTheme(
     reducedMotion: Boolean = rememberReducedMotion(),
     content: @Composable () -> Unit,
 ) {
+    val colors = if (darkTheme) AppColors.Dark else AppColors.Light
     CompositionLocalProvider(
-        LocalMascotColors provides if (darkTheme) DarkMascot else LightMascot,
+        LocalAppColors provides colors,
         LocalReducedMotion provides reducedMotion,
     ) {
         MaterialTheme(
-            colorScheme = if (darkTheme) DarkColors else LightColors,
+            colorScheme = colors.toMaterial(),
             typography = AppTypography,
             shapes = AppShapes,
             content = content,
@@ -33,12 +34,12 @@ fun LinkDownloaderTheme(
     }
 }
 
-/** The app's extra tokens, next to [MaterialTheme]'s. */
+/** The app's tokens in force: `AppTheme.colors.surface`. */
 object AppTheme {
 
-    /** The mascot's colours for the current theme. */
-    val mascot: MascotColors
+    /** The semantic colours for the current theme. */
+    val colors: AppColors
         @Composable
         @ReadOnlyComposable
-        get() = LocalMascotColors.current
+        get() = LocalAppColors.current
 }

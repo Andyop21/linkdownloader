@@ -46,13 +46,27 @@ sealed interface Status {
      */
     data class Done(val jobId: UUID, val videos: List<DownloadResult.Video>, val saved: Int, val failed: Int) : Status
 
-    /** The download failed for [reason]; the card shows the friendly message. */
+    /**
+     * Paste or Go found the link this screen saved last ([saved] videos, [videos] as in [Done]);
+     * nothing started, so no duplicate is made (B12).
+     */
+    data class AlreadySaved(val videos: List<DownloadResult.Video>, val saved: Int) : Status
+
+    /** The download failed for [reason]; the card shows the plain message. */
     data class Failed(val reason: FailureReason) : Status
 }
 
 /** True while a download is queued or running: Paste and Go are disabled and Cancel is shown (B4). */
 val Status.isRunning: Boolean
     get() = this is Status.Preparing || this is Status.Downloading || this is Status.Saving
+
+/** True when the bar can be cleared: neither a download nor a choice is in progress (B13). */
+val Status.isSettled: Boolean
+    get() = !isRunning && this !is Status.Choosing
+
+/** True when trying the same link again may work: the phone was offline, or the cause is unknown (B7). */
+val FailureReason.retryable: Boolean
+    get() = this == FailureReason.NoInternet || this == FailureReason.Unknown
 
 /** The About sheet (B10). [engineVersion] is null while [versionLoading] or when it cannot be read. */
 data class AboutState(

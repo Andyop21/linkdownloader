@@ -4,45 +4,104 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import io.github.andyop21.linkdownloader.R
 
 /**
- * Nunito, from Google Fonts' OFL release (`res/font/nunito.ttf`, the variable font; licence in
- * `assets/licenses/OFL-Nunito.txt`), used at three weights: regular, semibold and extrabold.
+ * Lato, from Google Fonts' OFL release (`res/font/lato_*.ttf`, unmodified; licence in
+ * `assets/licenses/OFL-Lato.txt`), at three weights: regular, bold and black.
  */
-val Nunito = FontFamily(
-    nunito(FontWeight.Normal),
-    nunito(FontWeight.SemiBold),
-    nunito(FontWeight.ExtraBold),
+val Lato = FontFamily(
+    Font(R.font.lato_regular, FontWeight.Normal),
+    Font(R.font.lato_bold, FontWeight.Bold),
+    Font(R.font.lato_black, FontWeight.Black),
 )
 
-private fun nunito(weight: FontWeight) = Font(
-    resId = R.font.nunito,
-    weight = weight,
-    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+/** Line boxes as CSS draws them: the leading split evenly above and below the glyphs. */
+private val EvenLeading = LineHeightStyle(
+    alignment = LineHeightStyle.Alignment.Center,
+    trim = LineHeightStyle.Trim.None,
 )
+
+/** A run of type: [size] sp at [weight], line height [lineHeight] times the size, tracking [tracking] em. */
+private fun style(
+    size: Float,
+    weight: FontWeight = FontWeight.Normal,
+    lineHeight: Float = 1.45f,
+    tracking: Float = 0f,
+    tabular: Boolean = false,
+): TextStyle = TextStyle(
+    fontFamily = Lato,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = (size * lineHeight).sp,
+    letterSpacing = if (tracking == 0f) TextUnit.Unspecified else tracking.em,
+    lineHeightStyle = EvenLeading,
+    fontFeatureSettings = if (tabular) "tnum" else null,
+)
+
+/** The named runs the screen uses. Colours are set where the text is drawn. */
+object AppType {
+    /** The app's name at the top: 26 sp, black, tight. */
+    val title = style(26f, FontWeight.Black, lineHeight = 1.15f, tracking = -0.02f)
+
+    /** The line under the title: 15 sp. */
+    val lead = style(15f)
+
+    /** A sheet's title: 19 sp, bold. */
+    val heading = style(19f, FontWeight.Bold, lineHeight = 1.25f, tracking = -0.015f)
+
+    /** The status card's main line: 16 sp, bold. */
+    val cardTitle = style(16f, FontWeight.Bold, lineHeight = 1.3f, tracking = -0.01f)
+
+    /** Body text: 14 sp. */
+    val body = style(14f)
+
+    /** A secondary line: 13 sp. */
+    val sub = style(13f, lineHeight = 1.4f)
+
+    /** A small uppercase label above a title: 11 sp, bold, spaced (the caller uppercases). */
+    val eyebrow = style(11f, FontWeight.Bold, lineHeight = 1.3f, tracking = 0.06f)
+
+    /** The main button's label: 16 sp, bold. */
+    val button = style(16f, FontWeight.Bold, lineHeight = 1.2f)
+
+    /** A small button's label: 14 sp, bold. */
+    val buttonSmall = style(14f, FontWeight.Bold, lineHeight = 1.2f)
+
+    /** The link field: 16 sp. */
+    val field = style(16f, lineHeight = 1.3f)
+
+    /** A number that changes in place (a percentage, a length): 13 sp, bold, tabular figures. */
+    val figure = style(13f, FontWeight.Bold, lineHeight = 1.3f, tabular = true)
+
+    /** A version or other value in a list: 14 sp, bold, tabular figures. */
+    val value = style(14f, FontWeight.Bold, tabular = true)
+}
 
 private val Base = Typography()
 
-private fun TextStyle.nunito(weight: FontWeight) = copy(fontFamily = Nunito, fontWeight = weight)
+private fun TextStyle.lato(weight: FontWeight) = copy(fontFamily = Lato, fontWeight = weight)
 
-/** Material 3's type scale in Nunito: headings and titles extrabold, labels semibold, body regular. */
+/** Material 3's type scale in Lato, for the Material parts that draw words of their own. */
 internal val AppTypography = Typography(
-    displayLarge = Base.displayLarge.nunito(FontWeight.ExtraBold),
-    displayMedium = Base.displayMedium.nunito(FontWeight.ExtraBold),
-    displaySmall = Base.displaySmall.nunito(FontWeight.ExtraBold),
-    headlineLarge = Base.headlineLarge.nunito(FontWeight.ExtraBold),
-    headlineMedium = Base.headlineMedium.nunito(FontWeight.ExtraBold),
-    headlineSmall = Base.headlineSmall.nunito(FontWeight.ExtraBold),
-    titleLarge = Base.titleLarge.nunito(FontWeight.ExtraBold),
-    titleMedium = Base.titleMedium.nunito(FontWeight.ExtraBold),
-    titleSmall = Base.titleSmall.nunito(FontWeight.SemiBold),
-    bodyLarge = Base.bodyLarge.nunito(FontWeight.Normal),
-    bodyMedium = Base.bodyMedium.nunito(FontWeight.Normal),
-    bodySmall = Base.bodySmall.nunito(FontWeight.Normal),
-    labelLarge = Base.labelLarge.nunito(FontWeight.SemiBold),
-    labelMedium = Base.labelMedium.nunito(FontWeight.SemiBold),
-    labelSmall = Base.labelSmall.nunito(FontWeight.SemiBold),
+    displayLarge = Base.displayLarge.lato(FontWeight.Black),
+    displayMedium = Base.displayMedium.lato(FontWeight.Black),
+    displaySmall = Base.displaySmall.lato(FontWeight.Black),
+    headlineLarge = Base.headlineLarge.lato(FontWeight.Black),
+    headlineMedium = Base.headlineMedium.lato(FontWeight.Black),
+    headlineSmall = Base.headlineSmall.lato(FontWeight.Bold),
+    titleLarge = Base.titleLarge.lato(FontWeight.Bold),
+    titleMedium = Base.titleMedium.lato(FontWeight.Bold),
+    titleSmall = Base.titleSmall.lato(FontWeight.Bold),
+    bodyLarge = Base.bodyLarge.lato(FontWeight.Normal),
+    bodyMedium = Base.bodyMedium.lato(FontWeight.Normal),
+    bodySmall = Base.bodySmall.lato(FontWeight.Normal),
+    labelLarge = Base.labelLarge.lato(FontWeight.Bold),
+    labelMedium = Base.labelMedium.lato(FontWeight.Bold),
+    labelSmall = Base.labelSmall.lato(FontWeight.Bold),
 )

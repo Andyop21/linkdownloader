@@ -26,6 +26,10 @@ import java.util.UUID
  * A finished download is shown only when this ViewModel started it, saw it running, or was asked
  * to show its choice from the notification ([onOpenChoice]); so a fresh start is always idle, and
  * a download still running is shown as running (B9).
+ *
+ * The bar looks after itself: a saved download or a cancel empties it, so the next link starts
+ * from a clean bar (B6, B5); the clear button empties it on demand (B13); and the link saved last
+ * is not downloaded twice by accident (B12).
  */
 class MainViewModel(private val downloads: Downloads) : ViewModel() {
 
@@ -47,6 +51,12 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
     /** The highest progress shown for [current], so the bar never goes backwards. */
     private var shownProgress: Float? = null
 
+    /** The link [current] was started with; null for a job adopted from an earlier run. */
+    private var currentLink: String? = null
+
+    /** The link this screen saved last and what it saved, for [Status.AlreadySaved]. */
+    private var lastSaved: SavedLink? = null
+
     init {
         viewModelScope.launch {
             downloads.jobs().collect { list ->
@@ -62,8 +72,28 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
     /** The keyboard's action key was pressed with [barText] in the bar (B3). */
     fun onSubmit(barText: String) = startFrom(barText, fromClipboard = false)
 
+    /** The bar was edited. A message about an earlier link no longer applies, so it gives way to idle. */
     fun onBarChanged(text: String) = mutableState.update {
-        it.copy(bar = text, status = if (it.status is Status.NoLink) Status.Idle else it.status)
+        it.copy(bar = text, status = if (it.status.isSettled) Status.Idle else it.status)
+    }
+
+    /** The bar's clear button: empties the bar and dismisses the last message (B13). */
+    fun onClear() = mutableState.update {
+        if (it.status.isSettled) it.copy(bar = "", status = Status.Idle) else it
+    }
+
+    /** **Try again** after a failure that may pass: the bar's link is started again (B7). */
+    fun onRetry() {
+        val status = state.value.status
+        if (status is Status.Failed && status.reason.retryable) startFrom(state.value.bar, fromClipboard = false, checkSaved = false)
+    }
+
+    /** **Download again** for a link that was already saved: a second copy is downloaded on purpose (B12). */
+    fun onDownloadAgain() {
+        val saved = lastSaved ?: return
+        if (state.value.status !is Status.AlreadySaved) return
+        lastSaved = null
+        start(saved.link, null)
     }
 
     /** **Cancel** on the status card (B5). The job's partial files are deleted by the worker. */
@@ -73,7 +103,8 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
             settled += id
         }
         current = null
-        setStatus(Status.Idle)
+        currentLink = null
+        mutableState.update { it.copy(bar = "", status = Status.Idle) }
     }
 
     /** Download the chosen videos of the post on the choice sheet, [positions] as [io.github.andyop21.linkdownloader.download.VideoChoice.index] values (B11). */
@@ -97,6 +128,7 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
     fun onOpenChoice(workId: UUID) {
         if (workId in settled || state.value.status.isRunning) return
         current = workId
+        currentLink = null
         shownProgress = null
         reconcile()
     }
@@ -134,19 +166,22 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
         }
     }
 
-    private fun startFrom(text: String?, fromClipboard: Boolean) {
+    private fun startFrom(text: String?, fromClipboard: Boolean, checkSaved: Boolean = true) {
         if (state.value.status.isRunning) return
         val link = LinkParser.firstLink(text)
-        if (link == null) {
-            setStatus(Status.NoLink(fromClipboard))
-        } else {
-            start(link, null)
+        val saved = lastSaved
+        when {
+            link == null -> setStatus(Status.NoLink(fromClipboard))
+            checkSaved && saved != null && saved.link == link ->
+                mutableState.update { it.copy(bar = link, status = Status.AlreadySaved(saved.videos, saved.saved)) }
+            else -> start(link, null)
         }
     }
 
     private fun start(link: String, selection: List<Int>?) {
         val id = downloads.start(link, selection)
         current = id
+        currentLink = link
         shownProgress = null
         mutableState.update { it.copy(bar = link, status = Status.Preparing) }
         reconcile()
@@ -168,6 +203,7 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
         if (state.value.status is Status.Choosing) return null
         val job = jobs.firstOrNull { !it.state.isFinished && it.id !in settled } ?: return null
         current = job.id
+        currentLink = null
         shownProgress = null
         return job.id
     }
@@ -191,10 +227,16 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
         settled += job.id
         current = null
         shownProgress = null
+        val link = currentLink
+        currentLink = null
         val result = job.result
         when {
-            job.state == JobState.Cancelled -> setStatus(Status.Idle)
-            result is DownloadResult.Saved -> setStatus(Status.Done(job.id, result.videos, result.savedCount, result.failed))
+            job.state == JobState.Cancelled -> mutableState.update { it.copy(bar = "", status = Status.Idle) }
+            result is DownloadResult.Saved -> {
+                if (link != null) lastSaved = SavedLink(link, result.videos, result.savedCount)
+                val done = Status.Done(job.id, result.videos, result.savedCount, result.failed)
+                mutableState.update { it.copy(bar = "", status = done) }
+            }
             result is DownloadResult.Choose -> showChoice(result)
             result is DownloadResult.Failed -> setStatus(Status.Failed(result.reason))
             else -> setStatus(Status.Failed(FailureReason.Unknown))
@@ -226,6 +268,9 @@ class MainViewModel(private val downloads: Downloads) : ViewModel() {
     }
 
     private fun setStatus(status: Status) = mutableState.update { it.copy(status = status) }
+
+    /** A link and what downloading it saved. */
+    private class SavedLink(val link: String, val videos: List<DownloadResult.Video>, val saved: Int)
 
     private fun setCheck(check: EngineCheck) = mutableState.update { it.copy(about = it.about.copy(check = check)) }
 

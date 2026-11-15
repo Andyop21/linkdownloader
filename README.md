@@ -6,7 +6,7 @@ your phone's `Downloads/` folder.
 Everything happens on the phone, through [yt-dlp](https://github.com/yt-dlp/yt-dlp) running inside
 the app. No server, no account, no ads, no analytics.
 
-<img src="docs/images/screenshot-light.png" alt="The Link Downloader screen: a lavender mascot, the link bar, a big Paste button and a card saying Ready when you are" width="270">
+<img src="docs/images/screenshot-light.png" alt="The Link Downloader screen: the app name, an empty link field, a card saying Copy a link, then tap Paste, and a blue Paste link button at the bottom" width="270">
 
 ## How it works
 
@@ -79,8 +79,8 @@ do not use it to re-upload other people's work.
 - [youtubedl-android](https://github.com/yausername/youtubedl-android) packages yt-dlp, Python and
   QuickJS for Android (GPL-3.0); this app uses the build published on Maven Central as
   `io.github.junkfood02.youtubedl-android:library`.
-- [Nunito](https://github.com/googlefonts/nunito) by the Nunito Project Authors (SIL Open Font
-  License 1.1; the licence ships in the app under `assets/licenses/`).
+- [Lato](https://www.latofonts.com/) by Łukasz Dziedzic (SIL Open Font License 1.1; the licence
+  ships in the app under `assets/licenses/`).
 
 ## License
 

@@ -1,9 +1,12 @@
 package io.github.andyop21.linkdownloader.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,20 +14,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,7 +40,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -53,16 +54,21 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.andyop21.linkdownloader.R
 import io.github.andyop21.linkdownloader.download.VideoChoice
-import io.github.andyop21.linkdownloader.ui.theme.PillShape
+import io.github.andyop21.linkdownloader.ui.theme.AppTheme
+import io.github.andyop21.linkdownloader.ui.theme.AppType
+import io.github.andyop21.linkdownloader.ui.theme.BadgeShape
+import io.github.andyop21.linkdownloader.ui.theme.Motion
 import io.github.andyop21.linkdownloader.ui.theme.SheetShape
 import io.github.andyop21.linkdownloader.ui.theme.TileShape
+import io.github.andyop21.linkdownloader.ui.theme.motion
+import io.github.andyop21.linkdownloader.ui.theme.tactile
 import java.util.Locale
 import kotlin.math.roundToLong
 
 /**
  * The sheet for a post with several videos (B11, DEC-005): the post's title and a grid of the
  * videos' thumbnails with their lengths, all selected at first. Tapping a thumbnail selects or
- * clears it; **Download (n)** queues the chosen ones; closing the sheet calls [onDismiss].
+ * clears it; **Download n videos** queues the chosen ones; closing the sheet calls [onDismiss].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,50 +78,59 @@ fun ChoiceSheet(
     onDownload: (List<Int>) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val colors = AppTheme.colors
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = SheetShape,
+        containerColor = colors.surface,
+        scrimColor = colors.scrim,
+        dragHandle = { BottomSheetDefaults.DragHandle(color = colors.borderStrong) },
     ) {
         ChoiceSheetContent(title, choices, onDownload)
     }
 }
 
-/** The choice sheet's content: title, hint, **Select all**, the grid and **Download (n)**. */
+/** The choice sheet's content: title, count, **Select all** or **Select none**, the grid and the download button. */
 @Composable
 fun ChoiceSheetContent(title: String, choices: List<VideoChoice>, onDownload: (List<Int>) -> Unit) {
+    val colors = AppTheme.colors
     var selected by rememberSaveable(choices) { mutableStateOf(choices.map { it.index }) }
     val cache = remember(choices) { ThumbnailCache() }
+    val all = selected.size == choices.size
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp)
+            .padding(horizontal = 20.dp)
             .padding(bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = title.ifBlank { stringResource(R.string.choice_title_fallback) },
-            style = MaterialTheme.typography.titleLarge,
-            maxLines = 3,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.semantics { heading() },
-        )
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.choice_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
-            TextButton(onClick = { selected = choices.map { it.index } }, shape = PillShape) {
-                Text(stringResource(R.string.choice_select_all))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = title.ifBlank { stringResource(R.string.choice_title_fallback) },
+                    style = AppType.heading,
+                    color = colors.ink,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = pluralStringResource(R.plurals.choice_hint, choices.size, choices.size),
+                    style = AppType.sub,
+                    color = colors.muted,
+                )
             }
+            ActionButton(
+                text = stringResource(if (all) R.string.choice_select_none else R.string.choice_select_all),
+                onClick = { selected = if (all) emptyList() else choices.map { it.index } },
+            )
         }
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 112.dp),
+            columns = GridCells.Adaptive(minSize = 104.dp),
             modifier = Modifier.weight(1f, fill = false),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             itemsIndexed(choices, key = { _, choice -> choice.index }) { i, choice ->
                 val isSelected = choice.index in selected
@@ -128,16 +143,18 @@ fun ChoiceSheetContent(title: String, choices: List<VideoChoice>, onDownload: (L
                 )
             }
         }
-        Button(
+        val label = if (selected.isEmpty()) {
+            stringResource(R.string.choice_download_none)
+        } else {
+            pluralStringResource(R.plurals.choice_download, selected.size, selected.size)
+        }
+        ActionButton(
+            text = label,
             onClick = { onDownload(selected) },
             enabled = selected.isNotEmpty(),
-            shape = PillShape,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp),
-        ) {
-            Text(stringResource(R.string.choice_download, selected.size), style = MaterialTheme.typography.titleMedium)
-        }
+            primary = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 
@@ -158,38 +175,58 @@ private fun ThumbnailTile(
     }
     val state = stringResource(if (selected) R.string.choice_selected else R.string.choice_not_selected)
     val bitmap = rememberThumbnail(choice.thumbnail, cache)
-    val shape = TileShape
-    val colors = MaterialTheme.colorScheme
+    val colors = AppTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    val edge by animateColorAsState(
+        targetValue = if (selected) colors.primary else Color.Transparent,
+        animationSpec = motion(Motion.BASE),
+        label = "tile edge",
+    )
+    val dim by animateFloatAsState(
+        targetValue = if (selected) 1f else 0.45f,
+        animationSpec = motion(Motion.SLOW),
+        label = "tile dim",
+    )
     Box(
         modifier = Modifier
             .aspectRatio(1f)
-            .clip(shape)
-            .background(colors.surfaceVariant)
-            .then(if (selected) Modifier.border(3.dp, colors.primary, shape) else Modifier)
+            .tactile(interaction, scale = 0.96f, dip = 0.dp)
+            .clip(TileShape)
+            .background(colors.surfaceSubtle)
+            .border(2.dp, edge, TileShape)
             .semantics {
                 contentDescription = description
                 stateDescription = state
             }
-            .toggleable(value = selected, role = Role.Checkbox, onValueChange = { onToggle() }),
+            .toggleable(
+                value = selected,
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Checkbox,
+                onValueChange = { onToggle() },
+            ),
     ) {
         if (bitmap != null) {
             Image(
                 bitmap = bitmap,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                alpha = if (selected) 1f else 0.55f,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(2.dp)
+                    .clip(TileShape)
+                    .graphicsLayer { alpha = dim },
             )
         }
         if (length != null) {
             Text(
                 text = length,
-                style = MaterialTheme.typography.labelMedium,
+                style = AppType.figure,
                 color = Color.White,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(6.dp)
-                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .background(Color.Black.copy(alpha = 0.7f), BadgeShape)
                     .padding(horizontal = 6.dp, vertical = 2.dp)
                     .clearAndSetSemantics {},
             )
@@ -203,12 +240,25 @@ private fun ThumbnailTile(
     }
 }
 
-/** A filled circle with a tick when selected, an empty ring when not. Decorative. */
+/** A blue disc with a tick when selected, an empty ring when not. It pops a little on change. Decorative. */
 @Composable
 private fun SelectedMark(selected: Boolean, modifier: Modifier = Modifier) {
-    val fill = MaterialTheme.colorScheme.primary
-    val tick = MaterialTheme.colorScheme.onPrimary
-    Canvas(modifier.size(24.dp)) {
+    val colors = AppTheme.colors
+    val fill = colors.primaryFill
+    val tick = colors.onPrimary
+    val scale by animateFloatAsState(
+        targetValue = if (selected) 1f else 0.86f,
+        animationSpec = motion(Motion.POP, Motion.Spring),
+        label = "mark scale",
+    )
+    Canvas(
+        modifier
+            .size(22.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            },
+    ) {
         val radius = size.minDimension / 2
         if (selected) {
             drawCircle(fill, radius)
@@ -217,10 +267,10 @@ private fun SelectedMark(selected: Boolean, modifier: Modifier = Modifier) {
                 lineTo(size.width * 0.44f, size.height * 0.68f)
                 lineTo(size.width * 0.74f, size.height * 0.36f)
             }
-            drawPath(path, tick, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawPath(path, tick, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
         } else {
-            drawCircle(Color.Black.copy(alpha = 0.25f), radius)
-            drawCircle(Color.White, radius - 1.dp.toPx(), center = Offset(size.width / 2, size.height / 2), style = Stroke(2.dp.toPx()))
+            drawCircle(Color.Black.copy(alpha = 0.3f), radius)
+            drawCircle(Color.White, radius - 1.dp.toPx(), center = Offset(size.width / 2, size.height / 2), style = Stroke(1.5.dp.toPx()))
         }
     }
 }

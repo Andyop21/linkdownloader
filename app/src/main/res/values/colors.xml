@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Window background before Compose draws; matches the theme's background token. -->
-    <color name="window_background">#FFF8F3</color>
-    <!-- The adaptive launcher icon's lavender background, behind the mascot. -->
-    <color name="ic_launcher_background">#7C6CF2</color>
+    <!-- Window background before Compose draws; matches the theme's canvas token. -->
+    <color name="window_background">#F5F6F8</color>
+    <!-- The adaptive launcher icon's blue background, behind the white arrow. -->
+    <color name="ic_launcher_background">#0063F3</color>
 </resources>

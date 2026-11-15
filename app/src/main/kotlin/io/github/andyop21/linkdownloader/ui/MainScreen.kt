@@ -5,7 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -20,8 +21,8 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -36,6 +37,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -50,8 +52,11 @@ import io.github.andyop21.linkdownloader.R
 import io.github.andyop21.linkdownloader.download.DownloadResult
 import io.github.andyop21.linkdownloader.download.FailureReason
 import io.github.andyop21.linkdownloader.download.VideoChoice
+import io.github.andyop21.linkdownloader.ui.theme.AppTheme
+import io.github.andyop21.linkdownloader.ui.theme.CardShape
 import io.github.andyop21.linkdownloader.ui.theme.LinkDownloaderTheme
 import io.github.andyop21.linkdownloader.ui.theme.SheetShape
+import io.github.andyop21.linkdownloader.ui.theme.rise
 import java.util.UUID
 import kotlinx.coroutines.launch
 
@@ -97,7 +102,13 @@ fun MainScreen(viewModel: MainViewModel, appVersion: String) {
                 focusManager.clearFocus()
                 viewModel.onPaste(readClipboard(context))
             },
+            onClear = viewModel::onClear,
             onCancel = viewModel::onCancel,
+            onRetry = {
+                focusManager.clearFocus()
+                viewModel.onRetry()
+            },
+            onDownloadAgain = viewModel::onDownloadAgain,
             onOpen = { uri ->
                 if (!openVideo(context, uri)) scope.launch { snackbar.showSnackbar(noAppMessage) }
             },
@@ -115,7 +126,10 @@ class MainActions(
     val onBarChanged: (String) -> Unit = {},
     val onGo: () -> Unit = {},
     val onPaste: () -> Unit = {},
+    val onClear: () -> Unit = {},
     val onCancel: () -> Unit = {},
+    val onRetry: () -> Unit = {},
+    val onDownloadAgain: () -> Unit = {},
     val onOpen: (uri: String) -> Unit = {},
     val onOpenAbout: () -> Unit = {},
     val onCloseAbout: () -> Unit = {},
@@ -125,10 +139,11 @@ class MainActions(
 )
 
 /**
- * The screen for [state], top to bottom: header, bar, Paste, status card; plus the choice and
- * About sheets when open. The content sits a little above the middle, is at most 560 dp wide and
- * scrolls when it does not fit (small phones, landscape, the largest font, the keyboard open). It
- * stays clear of the system bars and the keyboard.
+ * The screen for [state]: the header at the top, the link field and the status card under it,
+ * and **Paste link** at the bottom, where the thumb rests; plus the choice and About sheets when
+ * open. The content is at most 560 dp wide and scrolls when it does not fit (small phones,
+ * landscape, the largest font, the keyboard open). It stays clear of the system bars and the
+ * keyboard. Its blocks rise in, one after another, when the screen first appears.
  */
 @Composable
 fun MainContent(
@@ -139,11 +154,12 @@ fun MainContent(
     modifier: Modifier = Modifier,
 ) {
     val status = state.status
+    val colors = AppTheme.colors
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = colors.canvas,
         contentWindowInsets = WindowInsets.safeDrawing,
-        snackbarHost = { SnackbarHost(snackbar) },
+        snackbarHost = { AppSnackbarHost(snackbar) },
     ) { padding ->
         BoxWithConstraints(
             modifier = Modifier
@@ -164,28 +180,37 @@ fun MainContent(
                         .widthIn(max = 560.dp)
                         .fillMaxWidth()
                         .heightIn(min = viewport)
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                        .padding(horizontal = 20.dp)
+                        .padding(top = 28.dp, bottom = 16.dp),
                 ) {
-                    Spacer(Modifier.weight(ABOVE))
-                    HeaderWithMascot(
-                        mood = status.mood,
-                        onLongPress = actions.onOpenAbout,
-                        progress = status.mascotProgress,
-                    )
+                    Header(onLongPress = actions.onOpenAbout, modifier = Modifier.rise(0))
+                    Spacer(Modifier.height(28.dp))
                     LinkBar(
                         text = state.bar,
                         enabled = !status.isRunning,
                         onTextChange = actions.onBarChanged,
                         onGo = actions.onGo,
+                        onClear = actions.onClear,
+                        modifier = Modifier.rise(1),
                     )
-                    PasteButton(enabled = !status.isRunning, onClick = actions.onPaste)
+                    Spacer(Modifier.height(12.dp))
                     StatusCard(
                         status = status,
-                        onCancel = actions.onCancel,
-                        onOpen = { (status as? Status.Done)?.videos?.firstOrNull()?.let { actions.onOpen(it.uri) } },
+                        actions = StatusActions(
+                            onCancel = actions.onCancel,
+                            onOpen = { firstVideoUri(status)?.let(actions.onOpen) },
+                            onRetry = actions.onRetry,
+                            onDownloadAgain = actions.onDownloadAgain,
+                            canRetry = status is Status.Failed && status.reason.retryable && state.bar.isNotBlank(),
+                        ),
+                        modifier = Modifier.rise(2),
                     )
-                    Spacer(Modifier.weight(BELOW))
+                    Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
+                    PasteButton(
+                        enabled = !status.isRunning,
+                        onClick = actions.onPaste,
+                        modifier = Modifier.rise(3),
+                    )
                 }
             }
         }
@@ -209,9 +234,30 @@ fun MainContent(
     }
 }
 
-/** Free space above and below the content: a little less above, so it sits above the middle. */
-private const val ABOVE = 2f
-private const val BELOW = 3f
+/** The video **Open** plays: the first one saved. */
+private fun firstVideoUri(status: Status): String? = when (status) {
+    is Status.Done -> status.videos.firstOrNull()?.uri
+    is Status.AlreadySaved -> status.videos.firstOrNull()?.uri
+    else -> null
+}
+
+/** The snackbar: a dark overlay with a hairline edge, in both themes. */
+@Composable
+private fun AppSnackbarHost(state: SnackbarHostState) {
+    val colors = AppTheme.colors
+    SnackbarHost(state) { data ->
+        Snackbar(
+            snackbarData = data,
+            modifier = Modifier
+                .padding(horizontal = 12.dp)
+                .border(1.dp, Color.White.copy(alpha = 0.09f), CardShape),
+            shape = CardShape,
+            containerColor = colors.overlay,
+            contentColor = colors.overlayInk,
+            actionColor = colors.overlayAction,
+        )
+    }
+}
 
 /** The clipboard's first item as text, or null when it is empty. Read only when Paste is tapped. */
 private fun readClipboard(context: Context): String? {
@@ -246,8 +292,9 @@ private class UiStatePreviews : PreviewParameterProvider<UiState> {
         UiState(bar = PREVIEW_LINK, status = Status.Downloading(null, 1, 1, null)),
         UiState(bar = PREVIEW_LINK, status = Status.Downloading("A short clip", 2, 3, 0.42f)),
         UiState(bar = PREVIEW_LINK, status = Status.Saving("A short clip", 1, 1, 0.97f)),
-        UiState(bar = PREVIEW_LINK, status = Status.Done(UUID(0, 1), listOf(PreviewClip), saved = 1, failed = 0)),
-        UiState(bar = PREVIEW_LINK, status = Status.Done(UUID(0, 2), listOf(PreviewClip, PreviewClip), saved = 2, failed = 1)),
+        UiState(status = Status.Done(UUID(0, 1), listOf(PreviewClip), saved = 1, failed = 0)),
+        UiState(status = Status.Done(UUID(0, 2), listOf(PreviewClip, PreviewClip), saved = 2, failed = 1)),
+        UiState(bar = PREVIEW_LINK, status = Status.AlreadySaved(listOf(PreviewClip), saved = 1)),
         UiState(bar = PREVIEW_LINK, status = Status.Failed(FailureReason.NoInternet)),
         UiState(about = AboutState(open = true, engineVersion = "2026.10.26", check = EngineCheck.UpToDate)),
     )
@@ -275,7 +322,7 @@ private fun MainContentPreview(@PreviewParameter(UiStatePreviews::class) state: 
 @Composable
 private fun ChoiceSheetPreview() {
     LinkDownloaderTheme(reducedMotion = true) {
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = SheetShape) {
+        Surface(color = AppTheme.colors.surface, shape = SheetShape) {
             ChoiceSheetContent(title = "A post with three clips", choices = PreviewChoices, onDownload = {})
         }
     }
@@ -286,7 +333,7 @@ private fun ChoiceSheetPreview() {
 @Composable
 private fun AboutSheetPreview() {
     LinkDownloaderTheme(reducedMotion = true) {
-        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = SheetShape) {
+        Surface(color = AppTheme.colors.surface, shape = SheetShape) {
             AboutSheetContent(
                 appVersion = "0.1.0",
                 about = AboutState(open = true, engineVersion = "2026.10.26", check = EngineCheck.UpToDate),

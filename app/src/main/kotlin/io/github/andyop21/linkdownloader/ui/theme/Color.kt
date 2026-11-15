@@ -3,176 +3,230 @@ package io.github.andyop21.linkdownloader.ui.theme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
-// The palette from docs/architecture.md § Look and feel. Every text/background pair the screen
-// uses is checked against WCAG AA by ThemeContrastTest; change the table there too.
+// The palette from docs/architecture.md § Look and feel: a cool-gray neutral ramp, one blue for
+// actions and soft tints for status, after the Enamel design tokens (DEC-008). Every
+// text/background pair the screen draws is checked against WCAG AA by ThemeContrastTest; change
+// the list there too.
 
-/** The light scheme: cream background, white cards, lavender actions. */
-internal val LightColors: ColorScheme = lightColorScheme(
-    primary = Color(0xFF6352D9),
-    onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFE9E5FF),
-    onPrimaryContainer = Color(0xFF2A1F6B),
-    inversePrimary = Color(0xFFC9C0FF),
-    secondary = Color(0xFFFF9E8A),
-    onSecondary = Color(0xFF4A1A10),
-    secondaryContainer = Color(0xFFFFE3DB),
-    onSecondaryContainer = Color(0xFF5A2418),
-    tertiary = Color(0xFF3FAE93),
-    onTertiary = Color(0xFF00382C),
-    tertiaryContainer = Color(0xFFD5F3EA),
-    onTertiaryContainer = Color(0xFF0F4A3C),
-    error = Color(0xFFC4433B),
-    onError = Color(0xFFFFFFFF),
-    errorContainer = Color(0xFFFFE1DE),
-    onErrorContainer = Color(0xFF6B1712),
-    background = Color(0xFFFFF8F3),
-    onBackground = Color(0xFF2E2A3B),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF2E2A3B),
-    surfaceVariant = Color(0xFFF1E9F0),
-    onSurfaceVariant = Color(0xFF5E586B),
-    surfaceTint = Color(0xFF6352D9),
-    inverseSurface = Color(0xFF322E3E),
-    inverseOnSurface = Color(0xFFF6F1FA),
-    outline = Color(0xFF8C8599),
-    outlineVariant = Color(0xFFE3DCE6),
-    scrim = Color(0xFF000000),
-    surfaceBright = Color(0xFFFFFFFF),
-    surfaceDim = Color(0xFFEDE4DE),
-    surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFFFFBF8),
-    surfaceContainer = Color(0xFFFBF3EE),
-    surfaceContainerHigh = Color(0xFFF6EDE7),
-    surfaceContainerHighest = Color(0xFFF1E7E1),
-)
+/** The app's semantic colours. Screens take every colour from here by name. */
+@Immutable
+data class AppColors(
+    val dark: Boolean,
+    /** The page behind everything. */
+    val canvas: Color,
+    /** Cards, the link field and sheets. */
+    val surface: Color,
+    /** A neutral well: an idle icon tile, a grouped list, an empty thumbnail. */
+    val surfaceSubtle: Color,
+    /** Main text. */
+    val ink: Color,
+    /** Secondary text that still reads as content. */
+    val ink2: Color,
+    /** Supporting text: detail lines, eyebrows. */
+    val muted: Color,
+    /** The quietest text: placeholders, file names. */
+    val faint: Color,
+    /** A card's edge and dividers. */
+    val border: Color,
+    /** A secondary button's edge. */
+    val borderStrong: Color,
+    /** The edge of a form control, which must hold 3:1 against what is around it. */
+    val controlBorder: Color,
+    /** Blue for text, focus and progress on a surface. */
+    val primary: Color,
+    /** A filled blue control. */
+    val primaryFill: Color,
+    /** A filled blue control while pressed. */
+    val primaryFillPressed: Color,
+    /** Text and icons on [primaryFill]. */
+    val onPrimary: Color,
+    /** The blue tint behind a working icon. */
+    val primarySoft: Color,
+    /** Blue icons and text on [primarySoft]. */
+    val primaryInk: Color,
+    val success: Color,
+    val successSoft: Color,
+    val warning: Color,
+    val warningSoft: Color,
+    val danger: Color,
+    val dangerSoft: Color,
+    /** The snackbar, which stays dark in both themes. */
+    val overlay: Color,
+    val overlayInk: Color,
+    val overlayAction: Color,
+    /** What lies under a sheet. */
+    val scrim: Color,
+) {
+    /** The progress bar's empty track: ink at 8 %, over the card's surface. */
+    val track: Color get() = ink.copy(alpha = 0.08f)
 
-/** The dark scheme: deep plum background, soft lavender actions with dark text. */
-internal val DarkColors: ColorScheme = darkColorScheme(
-    primary = Color(0xFFB9AEFF),
-    onPrimary = Color(0xFF2A1F6B),
-    primaryContainer = Color(0xFF3D3370),
-    onPrimaryContainer = Color(0xFFE6E0FF),
-    inversePrimary = Color(0xFF6352D9),
-    secondary = Color(0xFFFFB8A8),
-    onSecondary = Color(0xFF5A2418),
-    secondaryContainer = Color(0xFF5C3329),
-    onSecondaryContainer = Color(0xFFFFDAD1),
-    tertiary = Color(0xFF8EE3CB),
-    onTertiary = Color(0xFF00382C),
-    tertiaryContainer = Color(0xFF1E4A3F),
-    onTertiaryContainer = Color(0xFFBFF5E4),
-    error = Color(0xFFFF8A80),
-    onError = Color(0xFF5C0F0A),
-    errorContainer = Color(0xFF5A2425),
-    onErrorContainer = Color(0xFFFFDAD6),
-    background = Color(0xFF1B1825),
-    onBackground = Color(0xFFEDE9F7),
-    surface = Color(0xFF252134),
-    onSurface = Color(0xFFEDE9F7),
-    surfaceVariant = Color(0xFF3A344C),
-    onSurfaceVariant = Color(0xFFC9C2D8),
-    surfaceTint = Color(0xFFB9AEFF),
-    inverseSurface = Color(0xFFEDE9F7),
-    inverseOnSurface = Color(0xFF322E3E),
-    outline = Color(0xFF948DA6),
-    outlineVariant = Color(0xFF48425A),
-    scrim = Color(0xFF000000),
-    surfaceBright = Color(0xFF3A344C),
-    surfaceDim = Color(0xFF1B1825),
-    surfaceContainerLowest = Color(0xFF16131F),
-    surfaceContainerLow = Color(0xFF211D2E),
-    surfaceContainer = Color(0xFF252134),
-    surfaceContainerHigh = Color(0xFF2F2A40),
-    surfaceContainerHighest = Color(0xFF3A344C),
-)
+    /** A press or selection wash on a quiet control: ink at 6 %. */
+    val press: Color get() = ink.copy(alpha = 0.06f)
 
-/** The status card's tone, which follows what the download is doing. */
-enum class StatusTone { Neutral, Working, Done, Failed }
+    companion object {
+        val Light = AppColors(
+            dark = false,
+            canvas = Color(0xFFF5F6F8),
+            surface = Color(0xFFFFFFFF),
+            surfaceSubtle = Color(0xFFEEF0F3),
+            ink = Color(0xFF1B1D21),
+            ink2 = Color(0xFF464B52),
+            muted = Color(0xFF5F656C),
+            faint = Color(0xFF676E78),
+            border = Color(0xFFE4E7EB),
+            borderStrong = Color(0xFFD5D9DE),
+            controlBorder = Color(0xFF80878F),
+            primary = Color(0xFF0063F3),
+            primaryFill = Color(0xFF0063F3),
+            primaryFillPressed = Color(0xFF0059D1),
+            onPrimary = Color(0xFFFFFFFF),
+            primarySoft = Color(0xFFEAF2FF),
+            primaryInk = Color(0xFF0059D1),
+            success = Color(0xFF007E3A),
+            successSoft = Color(0xFFE3F5EB),
+            warning = Color(0xFF956300),
+            warningSoft = Color(0xFFFBF1D6),
+            danger = Color(0xFFCF1F14),
+            dangerSoft = Color(0xFFFEE4E2),
+            overlay = Color(0xFF1D2126),
+            overlayInk = Color(0xFFFFFFFF),
+            overlayAction = Color(0xFF8FB8FF),
+            scrim = Color(0x8C080A0C),
+        )
 
-/**
- * The status card's colours for one tone: its [container], the main line ([content]), the detail
- * line ([detail]), the progress bar ([progress] on [track]) and the text button ([action]).
- */
-data class CardColors(
-    val container: Color,
-    val content: Color,
-    val detail: Color,
-    val progress: Color,
-    val track: Color,
-    val action: Color,
-)
-
-/** The card colours for [tone] in [scheme]: neutral, lavender, mint or soft red. */
-fun cardColors(tone: StatusTone, scheme: ColorScheme): CardColors = when (tone) {
-    StatusTone.Neutral -> CardColors(
-        container = scheme.surface,
-        content = scheme.onSurface,
-        detail = scheme.onSurfaceVariant,
-        progress = scheme.primary,
-        track = scheme.primaryContainer,
-        action = scheme.primary,
-    )
-    StatusTone.Working -> CardColors(
-        container = scheme.primaryContainer,
-        content = scheme.onPrimaryContainer,
-        detail = scheme.onPrimaryContainer,
-        progress = scheme.primary,
-        track = scheme.surface,
-        action = scheme.onPrimaryContainer,
-    )
-    StatusTone.Done -> CardColors(
-        container = scheme.tertiaryContainer,
-        content = scheme.onTertiaryContainer,
-        detail = scheme.onTertiaryContainer,
-        progress = scheme.tertiary,
-        track = scheme.surface,
-        action = scheme.onTertiaryContainer,
-    )
-    StatusTone.Failed -> CardColors(
-        container = scheme.errorContainer,
-        content = scheme.onErrorContainer,
-        detail = scheme.onErrorContainer,
-        progress = scheme.error,
-        track = scheme.surface,
-        action = scheme.onErrorContainer,
-    )
+        val Dark = AppColors(
+            dark = true,
+            canvas = Color(0xFF0F1215),
+            surface = Color(0xFF14171A),
+            surfaceSubtle = Color(0xFF1D2126),
+            ink = Color(0xFFE8EAED),
+            ink2 = Color(0xFFC7CCD2),
+            muted = Color(0xFF939BA4),
+            faint = Color(0xFF81888F),
+            border = Color(0xFF2C3138),
+            borderStrong = Color(0xFF3A4048),
+            controlBorder = Color(0xFF6B727C),
+            primary = Color(0xFF3D8BFF),
+            primaryFill = Color(0xFF2473E5),
+            primaryFillPressed = Color(0xFF1466D7),
+            onPrimary = Color(0xFFFFFFFF),
+            primarySoft = Color(0xFF16233A),
+            primaryInk = Color(0xFF6AA6FF),
+            success = Color(0xFF34B26C),
+            successSoft = Color(0xFF10291D),
+            warning = Color(0xFFD5A12A),
+            warningSoft = Color(0xFF2B2312),
+            danger = Color(0xFFF0655A),
+            dangerSoft = Color(0xFF33191A),
+            overlay = Color(0xFF262A30),
+            overlayInk = Color(0xFFFFFFFF),
+            overlayAction = Color(0xFF8FB8FF),
+            scrim = Color(0xA6050709),
+        )
+    }
 }
 
-/** The mascot's own colours; its face stays dark on its light body in both themes. */
-data class MascotColors(
-    val body: Color,
-    val fill: Color,
-    val ink: Color,
-    val shine: Color,
-    val cheek: Color,
-    val arrow: Color,
-    val sparkle: Color,
-    val sparkleAlt: Color,
-    val drop: Color,
-)
+/** A state's colour, as an icon tile shows it before the words beside it (which are always there). */
+enum class Tone { Neutral, Primary, Success, Warning, Danger }
 
-internal val LightMascot = MascotColors(
-    body = Color(0xFFC9C0FF),
-    fill = Color(0xFFA699FA),
-    ink = Color(0xFF2E2A3B),
-    shine = Color(0xFFFFFFFF),
-    cheek = Color(0xFFFF9E8A),
-    arrow = Color(0xFF6352D9),
-    sparkle = Color(0xFFFF9E8A),
-    sparkleAlt = Color(0xFF3FAE93),
-    drop = Color(0xFF7CB8F0),
-)
+/** The tone's own colour: an icon on its [soft] tile. */
+fun AppColors.ink(tone: Tone): Color = when (tone) {
+    Tone.Neutral -> ink2
+    Tone.Primary -> primaryInk
+    Tone.Success -> success
+    Tone.Warning -> warning
+    Tone.Danger -> danger
+}
 
-internal val DarkMascot = MascotColors(
-    body = Color(0xFFB9AEFF),
-    fill = Color(0xFF8F80F0),
-    ink = Color(0xFF1B1825),
-    shine = Color(0xFFFFFFFF),
-    cheek = Color(0xFFFFB8A8),
-    arrow = Color(0xFFE6E0FF),
-    sparkle = Color(0xFFFFB8A8),
-    sparkleAlt = Color(0xFF8EE3CB),
-    drop = Color(0xFF9CCBF5),
-)
+/** The tone's tint: the background of an icon tile. */
+fun AppColors.soft(tone: Tone): Color = when (tone) {
+    Tone.Neutral -> surfaceSubtle
+    Tone.Primary -> primarySoft
+    Tone.Success -> successSoft
+    Tone.Warning -> warningSoft
+    Tone.Danger -> dangerSoft
+}
+
+/** Material 3 told the same colours, so the few Material parts the screen uses draw in this palette. */
+internal fun AppColors.toMaterial(): ColorScheme = if (dark) {
+    darkColorScheme(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primarySoft,
+        onPrimaryContainer = primaryInk,
+        inversePrimary = primaryFill,
+        secondary = ink2,
+        onSecondary = surface,
+        secondaryContainer = surfaceSubtle,
+        onSecondaryContainer = ink,
+        tertiary = success,
+        onTertiary = surface,
+        tertiaryContainer = successSoft,
+        onTertiaryContainer = success,
+        background = canvas,
+        onBackground = ink,
+        surface = surface,
+        onSurface = ink,
+        surfaceVariant = surfaceSubtle,
+        onSurfaceVariant = muted,
+        surfaceTint = primary,
+        inverseSurface = overlay,
+        inverseOnSurface = overlayInk,
+        error = danger,
+        onError = surface,
+        errorContainer = dangerSoft,
+        onErrorContainer = danger,
+        outline = controlBorder,
+        outlineVariant = border,
+        scrim = scrim,
+        surfaceBright = surfaceSubtle,
+        surfaceDim = canvas,
+        surfaceContainerLowest = canvas,
+        surfaceContainerLow = surface,
+        surfaceContainer = surface,
+        surfaceContainerHigh = surface,
+        surfaceContainerHighest = surfaceSubtle,
+    )
+} else {
+    lightColorScheme(
+        primary = primary,
+        onPrimary = onPrimary,
+        primaryContainer = primarySoft,
+        onPrimaryContainer = primaryInk,
+        inversePrimary = primaryFill,
+        secondary = ink2,
+        onSecondary = surface,
+        secondaryContainer = surfaceSubtle,
+        onSecondaryContainer = ink,
+        tertiary = success,
+        onTertiary = surface,
+        tertiaryContainer = successSoft,
+        onTertiaryContainer = success,
+        background = canvas,
+        onBackground = ink,
+        surface = surface,
+        onSurface = ink,
+        surfaceVariant = surfaceSubtle,
+        onSurfaceVariant = muted,
+        surfaceTint = primary,
+        inverseSurface = overlay,
+        inverseOnSurface = overlayInk,
+        error = danger,
+        onError = surface,
+        errorContainer = dangerSoft,
+        onErrorContainer = danger,
+        outline = controlBorder,
+        outlineVariant = border,
+        scrim = scrim,
+        surfaceBright = surface,
+        surfaceDim = canvas,
+        surfaceContainerLowest = surface,
+        surfaceContainerLow = surface,
+        surfaceContainer = surface,
+        surfaceContainerHigh = surface,
+        surfaceContainerHighest = surfaceSubtle,
+    )
+}

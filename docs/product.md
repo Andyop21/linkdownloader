@@ -12,11 +12,14 @@ It is installed by sideloading the APK. It is not published on Google Play.
 
 One screen, top to bottom:
 
-1. **A small header**: the app name and a little mascot that reacts to what is happening.
-2. **The bar**: a rounded, single-line text field that holds the link.
-3. **The Paste button**: large, rounded and the obvious thing to tap.
-4. **A status card** under the button: one short, friendly line about what is happening, with
-   progress while downloading and an action when there is one (Cancel, Open).
+1. **A header**: the app name and one line on what it does.
+2. **The bar**: a single-line text field that holds the link, with a clear button while it holds
+   text.
+3. **A status card** under the bar: a small label, one plain line about what is happening and a
+   detail line, with progress while downloading and the action that fits (Cancel, Open, Try
+   again, Download again).
+4. **The Paste link button** at the bottom of the screen, where the thumb rests: full width and the
+   obvious thing to tap.
 
 No menus, no settings screen, no history list, no second screen.
 
@@ -24,27 +27,31 @@ No menus, no settings screen, no history list, no second screen.
 
 | # | When | Then |
 |---|---|---|
-| B1 | **Paste** is tapped and the clipboard holds an `http`/`https` link | The link fills the bar and the download starts at once. If the clipboard text holds other words around the link (share text), the first link is used. |
-| B2 | **Paste** is tapped and the clipboard holds no link, or is empty | The bar is left unchanged and the status says, kindly, that there is no link on the clipboard. Nothing starts. |
+| B1 | **Paste** is tapped and the clipboard holds an `http`/`https` link | The link fills the bar and the download starts at once. If the clipboard text holds other words around the link (share text), the first link is used. The link saved last is the exception (B12). |
+| B2 | **Paste** is tapped and the clipboard holds no link, or is empty | The bar is left unchanged and the status says that there is no link on the clipboard. Nothing starts. |
 | B3 | A link is typed or pasted into the bar with the keyboard, and the keyboard's action key is pressed | Same as B1, using the bar's text (the bar then holds just the link); same as B2 if it holds no link, with a message that the bar holds no link. |
 | B4 | A download is running | The status shows the video's title once known, then the progress, which never goes backwards. When several videos of one post download, it also says which one of how many ("2 of 3"), and the progress covers them all. **Paste** and the keyboard action are disabled. One download at a time. |
-| B5 | **Cancel** is tapped on the status card or in the notification | The download stops, its partial files are deleted, and the status returns to idle. Videos of the same post that were already saved stay saved. |
-| B6 | The download finishes | The video is in `Downloads/`, named after its title. The status says it was saved, with the file name and an **Open** action that plays it. For several videos it says how many were saved (and how many could not be, if any), and **Open** plays the first. The phone gives a light haptic tick. |
-| B7 | The download fails | The status gives a short, plain reason (table below). No technical error text, ever. |
+| B5 | **Cancel** is tapped on the status card or in the notification | The download stops, its partial files are deleted, the bar is emptied and the status returns to idle. Videos of the same post that were already saved stay saved. |
+| B6 | The download finishes | The video is in `Downloads/`, named after its title. The bar empties itself, ready for the next link. The status says it was saved, with the video's title, the file name and an **Open** action that plays it. For several videos it says how many were saved (and how many could not be, if any), and **Open** plays the first. The phone gives a light haptic tick. |
+| B7 | The download fails | The status gives a short title and a plain reason (table below). No technical error text, ever. The link stays in the bar. When the phone was offline or the cause is unknown, **Try again** starts the same link again. |
 | B8 | The app is left while a download runs | The download continues, with a notification showing progress and a Cancel action. When it ends, the notification says saved (tap to open) or failed. When the link turns out to be a post with several videos while the app is not on screen, a notification asks to choose which videos to save and opens the app on the choice. |
 | B9 | The app is opened again later | It starts idle. A download still running is shown as running. |
 | B10 | The header is long-pressed | A small sheet shows the app version and the yt-dlp version, with an **Update yt-dlp** button. This is the only "settings" surface and it stays hidden. |
 | B11 | The link leads to a post with several videos (an X post with several clips, an Instagram carousel) | After *preparing*, a sheet shows a thumbnail of each video, with its length, all of them selected. Tapping a thumbnail selects or clears it, so one, some or all can be chosen; **Select all** selects every one. **Download** (with the count, disabled when none is selected) saves the chosen videos one after another, each as its own file. Closing the sheet downloads nothing and returns to idle. A post with one video skips the sheet. Pictures in a post are not offered. |
+| B12 | **Paste** or the keyboard action finds the link this screen saved last | Nothing starts, so no duplicate is made. The link fills the bar and the status says it was already saved, with **Open** and **Download again** (which saves a second copy on purpose). Only the last saved link counts, and only until the app is closed. |
+| B13 | The bar holds text and no download or choice is in progress | A clear button sits at the bar's end: it empties the bar and dismisses the last message. Editing the bar also dismisses a message about an earlier link. |
 
 ### Failure reasons
 
-| Reason | Shown when | Message (tone, not final wording) |
-|---|---|---|
-| No internet | No network before or during the download | "No internet right now. Try again when you're back online." |
-| Not supported | yt-dlp does not know the site or the link is not a video | "This link doesn't lead to a video I can download." |
-| Unavailable | The video is private, removed, age- or region-locked | "This video isn't available to download." |
-| Needs login | The site asks for a login or a bot check | "This site wants you logged in, so I can't grab this one." |
-| Unknown | Anything else | "Something went wrong. Try again in a moment." |
+| Reason | Shown when | Title and message | Try again |
+|---|---|---|---|
+| No internet | No network before or during the download | "You're offline" / "Connect to the internet and try again." | Yes |
+| Not supported | yt-dlp does not know the site or the link is not a video | "Link not supported" / "This link doesn't lead to a video that can be saved." | No |
+| Unavailable | The video is private, removed, age- or region-locked | "Video unavailable" / "This video is private, removed or restricted." | No |
+| Needs login | The site asks for a login or a bot check | "Sign-in required" / "This site only shows the video to signed-in users." | No |
+| Unknown | Anything else | "Download failed" / "Something went wrong. Try again in a moment." | Yes |
+
+The notification shows the message alone, under "Couldn't download".
 
 ## What gets downloaded
 
@@ -57,17 +64,23 @@ No menus, no settings screen, no history list, no second screen.
 
 ## Look and feel
 
-Cute, soft and calm:
+Calm, clean and precise, like a well-made tool:
 
-- Pastel palette, rounded shapes, generous spacing, one big friendly button.
-- A rounded font (Nunito) and short, warm wording.
-- The mascot idles gently, bobs while working, cheers on success and looks worried on failure.
-  With the system's animations turned off, it stays still.
-- Light and dark themes, both equally pleasant. Text contrast meets WCAG AA.
+- A cool-gray neutral palette with one blue for actions, and soft tints only where a state needs
+  them: blue while working, green when saved, amber when there is nothing to download, red on
+  failure. A colour never stands alone; the words beside it always say the same.
+- Lato, a tight type scale and plain, short wording. No mascot, no exclamation marks.
+- One corner scale and capsule buttons. Cards are white on the gray page with a hairline edge.
+- Quiet, purposeful motion: the screen's blocks rise in on launch, a new status fades in where it
+  stands while the card eases to its new height, progress glides, a live dot breathes while a
+  download runs, buttons dip when pressed and the saved check pops in once. With the system's
+  animations turned off, everything is still.
+- Light and dark themes, both equally finished. Text contrast meets WCAG AA.
 - Material 3 components with the app's own colours and shapes, not the stock look.
 
-The exact palette, shapes and motion are set in `ui/theme` and described in
-[architecture.md](architecture.md) § *Look and feel*.
+The exact palette, type, shapes and motion are set in `ui/theme` and described in
+[architecture.md](architecture.md) § *Look and feel*. They follow the Enamel design tokens
+([DEC-008](work/decisions/DEC-008-enamel-derived-look.md)), without its brand colour or logo.
 
 ## Not in scope
 

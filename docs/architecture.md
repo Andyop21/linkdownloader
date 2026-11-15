@@ -47,8 +47,8 @@ One Gradle module, `app`. Packages under `io.github.andyop21.linkdownloader`:
 | Package | Holds |
 |---|---|
 | (root) | `LinkDownloaderApp` (initialises youtubedl-android once, creates the notification channel, schedules the yt-dlp update) and `MainActivity` |
-| `ui` | `MainScreen` and its components (`HeaderWithMascot`, `LinkBar`, `PasteButton`, `StatusCard`), `MainViewModel`, `UiState`, `Downloads` (the ViewModel's view of the download side), the `Mascot`, the line icons, the choice sheet with its thumbnail loader, the About sheet and the one-time notification permission request |
-| `ui.theme` | Colours (both schemes, the status card tones, the mascot's colours), Nunito type, shapes, motion and reduced motion, `LinkDownloaderTheme` |
+| `ui` | `MainScreen` and its components (`Header`, `LinkBar`, `StatusCard`, `PasteButton`, `ActionButton`, `IconTile`, `PulseDot`, `ProgressLine`), `MainViewModel`, `UiState`, `Downloads` (the ViewModel's view of the download side), the line icons, the choice sheet with its thumbnail loader, the About sheet and the one-time notification permission request |
+| `ui.theme` | `AppColors` (both palettes and the status tones), Lato type (`AppType`), the corner scale, motion and reduced motion, `LinkDownloaderTheme` |
 | `link` | `LinkParser`: finds the first `http`/`https` link in a piece of text. Pure Kotlin. |
 | `download` | The download pipeline (below), `DownloadWorker`, `UpdateWorker`, the notifications and `DownloadQueue` (§ *Background work*) |
 
@@ -158,10 +158,11 @@ link
 `MainViewModel` exposes one `UiState`: the bar's text, a `Status` and the About sheet's state.
 `Status` is one of `Idle`, `NoLink(fromClipboard)`, `Preparing`, `Choosing(title, choices)`,
 `Downloading(title, position, count, progress)`, `Saving(title, position, count, progress)`,
-`Done(jobId, videos, saved, failed)` and `Failed(reason)`; `Preparing`, `Downloading` and `Saving`
-count as running. The screen only renders `UiState` and passes taps back as calls (`onPaste`,
-`onSubmit`, `onBarChanged`, `onCancel`, `onChoose`, `onDismissChoice`, `onOpenChoice`,
-`onOpenAbout`, `onCloseAbout`, `onUpdateEngine`).
+`Done(jobId, videos, saved, failed)`, `AlreadySaved(videos, saved)` and `Failed(reason)`;
+`Preparing`, `Downloading` and `Saving` count as running. The screen only renders `UiState` and
+passes taps back as calls (`onPaste`, `onSubmit`, `onBarChanged`, `onClear`, `onCancel`,
+`onRetry`, `onDownloadAgain`, `onChoose`, `onDismissChoice`, `onOpenChoice`, `onOpenAbout`,
+`onCloseAbout`, `onUpdateEngine`).
 
 - **`Downloads`** is the small interface the ViewModel uses instead of `DownloadQueue`, so its unit
   tests use a fake: `start`, `cancel`, `jobs()` (each download's state, progress and result, mapped
@@ -174,6 +175,13 @@ count as running. The screen only renders `UiState` and passes taps back as call
   shown, or that was cancelled or dismissed here, is never shown again. Progress shown for a job
   never goes backwards; a post's later video starting over at *preparing* keeps showing the
   download.
+- **The bar looks after itself.** A saved job or a cancel (here or from the notification) empties
+  the bar (B6, B5); a failure keeps the link so **Try again** (`onRetry`, only for *no internet*
+  and *unknown*) can submit it again (B7). `onClear` and any edit of the bar return a settled
+  status (not running, not choosing) to `Idle` (B13). The ViewModel remembers the link it saved
+  last and what it saved (`SavedLink`, in memory only); Paste or Go with that same link shows
+  `AlreadySaved` instead of starting a job, and `onDownloadAgain` starts it on purpose (B12). A job
+  adopted from an earlier run has no known link, so it is not remembered.
 - **Choosing.** A `Choose` result carries the link, so the chosen positions are queued as a second
   download of the same link, even after a process death. The choices are read from the file
   `ChoicesFile` wrote; if it is gone, the status is `Failed(Unknown)`.
@@ -181,8 +189,8 @@ count as running. The screen only renders `UiState` and passes taps back as call
   (`ClipboardManager`, first item, `coerceToText`); **Open** sends `ACTION_VIEW` with a read grant
   and shows a snackbar when no app can play the video; a `Confirm` haptic plays once per finished
   job (also across rotations); `POST_NOTIFICATIONS` is asked once (§ *Permissions*).
-- **Components** (`HeaderWithMascot`, `LinkBar`, `PasteButton`, `StatusCard`, `ChoiceSheet`,
-  `AboutSheet`) take state and callbacks and hold no logic. Each sheet's content
+- **Components** (`Header`, `LinkBar`, `StatusCard`, `PasteButton`, `ChoiceSheet`, `AboutSheet`)
+  take state and callbacks and hold no logic. Each sheet's content
   (`ChoiceSheetContent`, `AboutSheetContent`) is separate from its `ModalBottomSheet`, so it can be
   previewed. The column is at most 560 dp wide and scrolls, so small phones, landscape, the
   largest font and the open keyboard all fit; it pads for the system bars and the keyboard
@@ -250,7 +258,7 @@ Why: [DEC-006](work/decisions/DEC-006-workmanager-background-downloads.md).
   | ID | Notification | Tap |
   |---|---|---|
   | 1 | Ongoing: the title (or "Getting ready…"), the stage, "2 of 3" for a post, the progress (indeterminate until known) and **Cancel** (`createCancelPendingIntent`) | Opens the app |
-  | 2 | Result: "Saved to Downloads" with the file name, or "3 videos saved" (and how many could not be); or "Couldn't download" with the friendly reason | Plays the (first) video (`ACTION_VIEW`, read permission granted); a failure opens the app |
+  | 2 | Result: "Saved to Downloads" with the file name, or "3 videos saved" (and how many could not be); or "Couldn't download" with the plain reason | Plays the (first) video (`ACTION_VIEW`, read permission granted); a failure opens the app |
   | 3 | "Choose which videos to save", only when no activity of the app is on screen; removed when the next download starts | Opens the app with the extra `EXTRA_CHOOSE_WORK_ID` (the work ID) |
 
   Results auto-cancel on tap. Notifications are posted only when `POST_NOTIFICATIONS` is granted;
@@ -273,69 +281,74 @@ WorkManager's `SystemForegroundService` is merged into the manifest with
 
 ## Look and feel
 
-Implemented in `ui.theme`; tokens, not inline values. Why some values are as they are:
-[DEC-007](work/decisions/DEC-007-look-and-feel-tokens.md).
+Implemented in `ui.theme`; tokens, not inline values. The values follow the Enamel design tokens,
+without its brand colour or logo: [DEC-008](work/decisions/DEC-008-enamel-derived-look.md).
+Screens read colours by name from `AppTheme.colors` (`AppColors`); Material 3 is given the same
+colours (`toMaterial()`) for the few Material parts that draw their own (sheets, snackbar).
 
-| Token | Light | Dark |
-|---|---|---|
-| background | `#FFF8F3` cream | `#1B1825` |
-| onBackground | `#2E2A3B` | `#EDE9F7` |
-| surface | `#FFFFFF` | `#252134` |
-| onSurface | `#2E2A3B` | `#EDE9F7` |
-| onSurfaceVariant | `#5E586B` | `#C9C2D8` |
-| surfaceContainerLow (sheets) | `#FFFBF8` | `#211D2E` |
-| surfaceContainerHighest (the bar) | `#F1E7E1` | `#3A344C` |
-| outlineVariant (idle card edge) | `#E3DCE6` | `#48425A` |
-| primary (lavender) | `#6352D9` | `#B9AEFF` |
-| onPrimary | `#FFFFFF` | `#2A1F6B` |
-| primaryContainer | `#E9E5FF` | `#3D3370` |
-| onPrimaryContainer | `#2A1F6B` | `#E6E0FF` |
-| secondary (peach) | `#FF9E8A` | `#FFB8A8` |
-| tertiary (mint, success) | `#3FAE93` | `#8EE3CB` |
-| onTertiary | `#00382C` | `#00382C` |
-| tertiaryContainer | `#D5F3EA` | `#1E4A3F` |
-| onTertiaryContainer | `#0F4A3C` | `#BFF5E4` |
-| error (soft red) | `#C4433B` | `#FF8A80` |
-| errorContainer | `#FFE1DE` | `#5A2425` |
-| onErrorContainer | `#6B1712` | `#FFDAD6` |
-| inverseSurface / inverseOnSurface (snackbar) | `#322E3E` / `#F6F1FA` | `#EDE9F7` / `#322E3E` |
+| Token | Light | Dark | Used for |
+|---|---|---|---|
+| canvas | `#F5F6F8` | `#0F1215` | The page |
+| surface | `#FFFFFF` | `#14171A` | Cards, the bar, sheets |
+| surfaceSubtle | `#EEF0F3` | `#1D2126` | Neutral tiles, the clear button, empty thumbnails |
+| ink | `#1B1D21` | `#E8EAED` | Main text |
+| ink2 | `#464B52` | `#C7CCD2` | Secondary text, the percentage |
+| muted | `#5F656C` | `#939BA4` | Eyebrows, detail lines, the lead |
+| faint | `#676E78` | `#81888F` | Placeholder, the bar's icon |
+| border | `#E4E7EB` | `#2C3138` | Card edges, dividers |
+| borderStrong | `#D5D9DE` | `#3A4048` | Outlined buttons |
+| controlBorder | `#80878F` | `#6B727C` | The bar's edge (3:1) |
+| primary | `#0063F3` | `#3D8BFF` | Focus, progress, the live dot, selection |
+| primaryFill / pressed | `#0063F3` / `#0059D1` | `#2473E5` / `#1466D7` | Filled buttons, white label |
+| primarySoft / primaryInk | `#EAF2FF` / `#0059D1` | `#16233A` / `#6AA6FF` | The working tile |
+| success / successSoft | `#007E3A` / `#E3F5EB` | `#34B26C` / `#10291D` | The saved tile |
+| warning / warningSoft | `#956300` / `#FBF1D6` | `#D5A12A` / `#2B2312` | The no-link tile |
+| danger / dangerSoft | `#CF1F14` / `#FEE4E2` | `#F0655A` / `#33191A` | The failure tile |
+| overlay / overlayInk / overlayAction | `#1D2126` / `#FFFFFF` / `#8FB8FF` | `#262A30` / `#FFFFFF` / `#8FB8FF` | The snackbar |
 
-The rest of the Material 3 slots are filled in `ui/theme/Color.kt`. Every text/background pair the
-screen draws passes WCAG AA (4.5:1 for text, 3:1 for icons, the progress bar and the mascot's face)
-in both themes; `ThemeContrastTest` checks the list. Disabled controls are exempt, as in WCAG.
-Dynamic colour is off: the app keeps its own palette.
+`track` (ink at 8 %, the progress track) and `press` (ink at 6 %, an outlined button held down)
+derive from ink. Every text/background pair the screen draws passes WCAG AA (4.5:1 for text, 3:1
+for icons, control edges and the progress bar) in both themes; `ThemeContrastTest` checks the
+list, laying translucent colours over their background first. Disabled controls are exempt, as in
+WCAG. Dynamic colour is off: the app keeps its own palette.
 
-- **Status card tones** (`cardColors`): neutral (surface with an outlineVariant edge) while idle,
-  with no link or while choosing; lavender (primaryContainer) while preparing, downloading and
-  saving; mint (tertiaryContainer) when done; soft red (errorContainer) on failure. The tint and
-  the text colours cross-fade, and the card's height changes with the spring.
-- **Type:** Nunito (SIL Open Font License), the variable font from Google Fonts bundled as
-  `res/font/nunito.ttf` and used at weights 400, 600 and 800 (`FontVariation.weight`); licence in
-  `assets/licenses/OFL-Nunito.txt`. Headings and titles 800, labels 600, body 400.
-- **Shapes** (`ui/theme/Shape.kt`): `PillShape` for the bar and every button, `CardShape` 24 dp for
-  the status card, `SheetShape` 32 dp top corners for both sheets, `TileShape` 16 dp for thumbnails.
-- **Motion** (`ui/theme/Motion.kt`): one spring (`Motion.spring`, damping 0.6, medium-low
-  stiffness) and one 250 ms ease (`Motion.tween`), used everywhere through `springSpec()` and
-  `tweenSpec()`. `rememberReducedMotion()` reads the system animator duration scale and follows
-  changes; the theme provides it as `LocalReducedMotion`, and when it is 0 every transition snaps,
-  the mascot stands still and the indeterminate progress bar is a still track.
-- **Screen:** the content sits a little above the middle (free space split 2:3), with the mascot
-  (104 dp) and the app name in Nunito ExtraBold centred above a filled pill bar (link icon, "Video
-  link" label, lavender ring when focused), a 76 dp lavender **Paste** pill with a clipboard icon
-  that shrinks to 95 % when pressed, and the status card. The progress bar is 10 dp, rounded,
-  on a pill track, and glides between updates with the 250 ms ease.
-- **Mascot** (`ui/Mascot.kt`): a lavender mochi-shaped blob with a download-arrow on its head,
-  blush and a face, drawn with `Canvas` in a 100-unit space. Idle: breathes (2.4 s). Working: a
-  "o" mouth, bobs (0.45 s) with the arrow pushing down, and fills from the bottom with the
-  download's progress. Happy: closed "^ ^" eyes and an open smile, one hop and three sparkles
-  that stay. Worried: raised brows, a small frown, a sweat drop and one wobble. Each mood has a
-  content description ("Mascot, cheering"). Its colours are `AppTheme.mascot`.
-- **Icon:** adaptive launcher icon with the idle mascot on lavender `#7C6CF2`
-  (`drawable/ic_launcher_foreground.xml`), a monochrome layer for themed icons
-  (`ic_launcher_monochrome.xml`: the silhouette with eyes and smile cut out) and the same
-  silhouette as the white notification icon (`ic_stat_download.xml`).
-- **Line icons** (`ui/Icons.kt`): the clipboard and link icons are drawn as stroked paths; no icon
-  library.
+- **Status tones** (`Tone`, `Status.tone`): the status card is always the white surface with a
+  hairline edge; only its 40 dp icon tile is tinted. Neutral (idle, choosing), primary (preparing,
+  downloading, saving), success (done, already saved), warning (no link), danger (failed).
+- **Type** (`ui/theme/Type.kt`): Lato 400, 700 and 900 from Google Fonts' OFL release, unmodified,
+  as `res/font/lato_regular.ttf`, `lato_bold.ttf` and `lato_black.ttf`; licence in
+  `assets/licenses/OFL-Lato.txt`. Named runs in `AppType`: title 26 sp black, tracking -0.02 em;
+  heading 19 sp bold; card title 16 sp bold; body 14 sp at 1.45; lead 15 sp; eyebrow 11 sp bold,
+  uppercase, tracking 0.06 em; button 16 sp bold; field 16 sp; figures with tabular numbers. Line
+  heights split their leading evenly above and below, as CSS does. Material's type scale is set in
+  Lato too.
+- **Shapes** (`ui/theme/Shape.kt`): one corner scale, every corner a circular arc: `BadgeShape` 6,
+  `TileShape` 10 (icon tiles, thumbnails), `FieldShape` 12, `CardShape` 14 (status card, grouped
+  list, snackbar), `SheetShape` 18 (top corners); `CapsuleShape` for every button and mark. A shape
+  nested inside another takes the outer radius less the inset (`Corners.inner`).
+- **Motion** (`ui/theme/Motion.kt`): curves `EaseOut` (0.16, 1, 0.3, 1) for arrivals, `EaseIn`
+  (0.4, 0, 1, 1) for departures, `Standard` (0.4, 0, 0.2, 1) for colour and size changes, and
+  `Spring` (0.34, 1.56, 0.64, 1), which overshoots, only for the saved check and the thumbnail mark.
+  Durations: 120 ms press, 160 ms colour, 240 ms size change, 320 ms content swap, 380 ms pop,
+  480 ms progress glide, 640 ms rise. `motion()` gives a tween or, with motion off, a snap.
+  `Modifier.rise(index)` fades a block in from 14 dp below, 70 ms after the one before;
+  `Modifier.tactile()` shrinks a control to 97 % and dips it 1 dp while held. The status card's
+  content cross-fades (out 120 ms, in 320 ms rising 8 dp) when the kind of status changes, while
+  the card eases to its new height; progress within a download updates in place.
+  `rememberReducedMotion()` reads the system animator duration scale and follows changes; the
+  theme provides it as `LocalReducedMotion`, and when it is 0 every transition snaps, the live dot
+  stays still and the indeterminate progress line is an empty track.
+- **Screen:** the header (title and lead) at the top left, the bar (56 dp, 1 dp control edge,
+  1.5 dp blue edge and a soft 3 dp ring with focus, link icon, clear button while it holds text),
+  the status card 12 dp below, and the 56 dp **Paste link** capsule at the bottom, 20 dp from the
+  sides. Card actions are 40 dp capsules with a 48 dp touch target: filled blue for **Open** and
+  **Try again**, outlined for **Cancel** and **Download again**. The progress line is 6 dp; before
+  the first progress a short segment sweeps across it.
+- **Icon:** adaptive launcher icon with a white arrow into a tray on blue `#0063F3`
+  (`drawable/ic_launcher_foreground.xml`), the same strokes as the monochrome layer for themed
+  icons (`ic_launcher_monochrome.xml`) and as the white notification icon (`ic_stat_download.xml`).
+- **Line icons** (`ui/Icons.kt`): paste, link, download, check, alert, empty clipboard, grid and
+  close, drawn as 2 dp stroked paths on a 24 dp grid; no icon library.
 
 ## Dependencies
 
