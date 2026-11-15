@@ -21,3 +21,4 @@ Numbers are three digits, assigned in order, never reused. A bug stays in `bugs/
 | ID | Title |
 |---|---|
 | [DEC-001](decisions/DEC-001-kotlin-compose-ytdlp.md) | Kotlin, Jetpack Compose and youtubedl-android |
+| [DEC-002](decisions/DEC-002-no-ffmpeg-merge-with-mediamuxer.md) | No ffmpeg; pick formats in Kotlin and join them with MediaMuxer |
