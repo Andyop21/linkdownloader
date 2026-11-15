@@ -48,25 +48,24 @@ under the video's own title, where your gallery, Files app and video player alre
 4. **Open it.** When the video is saved the orb turns green, the phone gives a light tick, and
    **Open** plays it. The field empties itself, ready for the next link.
 
-| 1. Ready | 2. Downloading | 3. Saved |
-|:---:|:---:|:---:|
-| <img src="docs/images/screen-light-idle.png" alt="The ready screen: a blue orb with a download arrow, the line Copy a link, then tap Paste, the sites it works with, and the link field with the Paste link button at the bottom" width="230"> | <img src="docs/images/screen-light-downloading.png" alt="Downloading: a progress ring around the orb at 58 percent, the video's title, the word Downloading and a Cancel button; the Paste link button is disabled" width="230"> | <img src="docs/images/screen-light-saved.png" alt="Saved: a green orb with a check, the video's title, Saved to Downloads and a blue Open button; the link field is empty again" width="230"> |
-| Copy a link anywhere, then tap **Paste link**. | The title appears as soon as it is known; **Cancel** stops the download and deletes its partial files. | The file is in `Downloads/`, named after the video. **Open** plays it. |
+The three screens at the top of this page are those steps: ready, downloading, saved.
 
 ## Every state of the screen
 
 There is only one screen, so everything the app can tell you happens in the same place: the orb
 changes colour, and the words under it always say the same thing in plain language.
 
-| Reading the link | Downloading | Saved |
-|:---:|:---:|:---:|
-| <img src="docs/images/screen-dark-reading.png" alt="Dark theme: an arc turns around the orb while the arrow drops into the tray, with the line Reading the link, Getting the video's details, and Cancel" width="230"> | <img src="docs/images/screen-dark-downloading.png" alt="Dark theme: the progress ring and percentage inside the orb, the video's title, Downloading and Cancel" width="230"> | <img src="docs/images/screen-dark-saved.png" alt="Dark theme: the green saved orb with a check, the title, Saved to Downloads and Open" width="230"> |
-| yt-dlp is looking up the video. An arc turns and the arrow drops into the tray. | The ring fills, never backwards. A post with several videos also says "2 of 3". | Green with a check and one ripple. |
+![Four screens in the light theme: Reading the link, with an arc turning around the orb and a Cancel button; Already saved, with a green check, the title Me at the zoo, Already in your Downloads, and the buttons Download again and Open; Failed, with a red orb, Link not supported and one plain sentence; and the About sheet over the screen, showing the app version 1.0.0, the yt-dlp version 2026.10.26 and an Update yt-dlp button](docs/images/states.png)
 
-| Already saved | Failed | About |
-|:---:|:---:|:---:|
-| <img src="docs/images/screen-light-already-saved.png" alt="Light theme: the green orb, the title Me at the zoo, Already in your Downloads, and two buttons, Download again and Open" width="230"> | <img src="docs/images/screen-dark-failed.png" alt="Dark theme: a red orb with an exclamation mark, Link not supported, This link doesn't lead to a video that can be saved" width="230"> | <img src="docs/images/screen-dark-about.png" alt="Dark theme: a bottom sheet over the screen showing the app version 1.0.0, the yt-dlp version 2026.10.26 and an Update yt-dlp button" width="230"> |
-| Pasting the link you just saved does not make a duplicate. **Download again** saves a second copy on purpose. | A short title and one plain sentence; never a raw error. **Try again** appears when the problem may pass. | Long-press the title bar to see the app and yt-dlp versions and to update yt-dlp by hand. |
+- **Reading the link:** yt-dlp is looking up the video. An arc turns and the arrow drops into the
+  tray. Then the ring fills with the percentage, never backwards; a post with several videos also
+  says "2 of 3".
+- **Already saved:** pasting the link you just saved does not make a duplicate. **Download again**
+  saves a second copy on purpose.
+- **Failed:** a short title and one plain sentence, never a raw error. **Try again** appears when
+  the problem may pass (see [When a download fails](#when-a-download-fails)).
+- **About:** long-press the title bar to see the app and yt-dlp versions and to update yt-dlp by
+  hand.
 
 **Posts with several videos.** When a link leads to a post with more than one video (an X post with
 two clips, an Instagram carousel), a sheet shows a thumbnail and the length of each one, all
@@ -78,7 +77,7 @@ asks you to choose.
 of text meets WCAG AA contrast, checked by a unit test. With the phone's animations turned off,
 every animation stays still.
 
-![The ready screen in the light theme and in the dark theme, side by side](docs/images/themes.png)
+<p align="center"><img src="docs/images/themes.png" alt="The ready screen in the light theme and in the dark theme, side by side" width="480"></p>
 
 ## What gets saved
 
