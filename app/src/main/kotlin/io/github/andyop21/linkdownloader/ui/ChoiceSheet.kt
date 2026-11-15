@@ -18,7 +18,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -54,6 +53,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.andyop21.linkdownloader.R
 import io.github.andyop21.linkdownloader.download.VideoChoice
+import io.github.andyop21.linkdownloader.ui.theme.PillShape
+import io.github.andyop21.linkdownloader.ui.theme.SheetShape
+import io.github.andyop21.linkdownloader.ui.theme.TileShape
 import java.util.Locale
 import kotlin.math.roundToLong
 
@@ -70,64 +72,71 @@ fun ChoiceSheet(
     onDownload: (List<Int>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var selected by rememberSaveable(choices) { mutableStateOf(choices.map { it.index }) }
-    val cache = remember(choices) { ThumbnailCache() }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = SheetShape,
     ) {
-        Column(
+        ChoiceSheetContent(title, choices, onDownload)
+    }
+}
+
+/** The choice sheet's content: title, hint, **Select all**, the grid and **Download (n)**. */
+@Composable
+fun ChoiceSheetContent(title: String, choices: List<VideoChoice>, onDownload: (List<Int>) -> Unit) {
+    var selected by rememberSaveable(choices) { mutableStateOf(choices.map { it.index }) }
+    val cache = remember(choices) { ThumbnailCache() }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            text = title.ifBlank { stringResource(R.string.choice_title_fallback) },
+            style = MaterialTheme.typography.titleLarge,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.semantics { heading() },
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.choice_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = { selected = choices.map { it.index } }, shape = PillShape) {
+                Text(stringResource(R.string.choice_select_all))
+            }
+        }
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = 112.dp),
+            modifier = Modifier.weight(1f, fill = false),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            itemsIndexed(choices, key = { _, choice -> choice.index }) { i, choice ->
+                val isSelected = choice.index in selected
+                ThumbnailTile(
+                    number = i + 1,
+                    choice = choice,
+                    selected = isSelected,
+                    cache = cache,
+                    onToggle = { selected = if (isSelected) selected - choice.index else selected + choice.index },
+                )
+            }
+        }
+        Button(
+            onClick = { onDownload(selected) },
+            enabled = selected.isNotEmpty(),
+            shape = PillShape,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .heightIn(min = 56.dp),
         ) {
-            Text(
-                text = title.ifBlank { stringResource(R.string.choice_title_fallback) },
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { heading() },
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.choice_hint),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(onClick = { selected = choices.map { it.index } }) {
-                    Text(stringResource(R.string.choice_select_all))
-                }
-            }
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 112.dp),
-                modifier = Modifier.weight(1f, fill = false),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                itemsIndexed(choices, key = { _, choice -> choice.index }) { i, choice ->
-                    val isSelected = choice.index in selected
-                    ThumbnailTile(
-                        number = i + 1,
-                        choice = choice,
-                        selected = isSelected,
-                        cache = cache,
-                        onToggle = { selected = if (isSelected) selected - choice.index else selected + choice.index },
-                    )
-                }
-            }
-            Button(
-                onClick = { onDownload(selected) },
-                enabled = selected.isNotEmpty(),
-                shape = CircleShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp),
-            ) {
-                Text(stringResource(R.string.choice_download, selected.size))
-            }
+            Text(stringResource(R.string.choice_download, selected.size), style = MaterialTheme.typography.titleMedium)
         }
     }
 }
@@ -149,7 +158,7 @@ private fun ThumbnailTile(
     }
     val state = stringResource(if (selected) R.string.choice_selected else R.string.choice_not_selected)
     val bitmap = rememberThumbnail(choice.thumbnail, cache)
-    val shape = RoundedCornerShape(16.dp)
+    val shape = TileShape
     val colors = MaterialTheme.colorScheme
     Box(
         modifier = Modifier

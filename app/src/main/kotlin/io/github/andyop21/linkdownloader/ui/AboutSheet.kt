@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +23,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.andyop21.linkdownloader.R
+import io.github.andyop21.linkdownloader.ui.theme.PillShape
+import io.github.andyop21.linkdownloader.ui.theme.SheetShape
 
 /**
  * The hidden About sheet (B10): the app version, the yt-dlp version and **Update yt-dlp**, which
@@ -35,44 +36,51 @@ fun AboutSheet(appVersion: String, about: AboutState, onUpdate: () -> Unit, onDi
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = SheetShape,
     ) {
-        Column(
+        AboutSheetContent(appVersion, about, onUpdate)
+    }
+}
+
+/** The About sheet's content: the app name, both versions, **Update yt-dlp** and its result. */
+@Composable
+fun AboutSheetContent(appVersion: String, about: AboutState, onUpdate: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp)
+            .padding(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.semantics { heading() },
+        )
+        VersionRow(stringResource(R.string.about_app_version), appVersion)
+        VersionRow(
+            stringResource(R.string.about_engine_version),
+            about.engineVersion ?: stringResource(
+                if (about.versionLoading) R.string.about_version_loading else R.string.about_version_unknown,
+            ),
+        )
+        Button(
+            onClick = onUpdate,
+            enabled = about.check != EngineCheck.Checking,
+            shape = PillShape,
             modifier = Modifier
                 .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .heightIn(min = 56.dp),
         ) {
+            Text(stringResource(R.string.about_update), style = MaterialTheme.typography.titleMedium)
+        }
+        checkText(about.check)?.let { text ->
             Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics { heading() },
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
-            VersionRow(stringResource(R.string.about_app_version), appVersion)
-            VersionRow(
-                stringResource(R.string.about_engine_version),
-                about.engineVersion ?: stringResource(
-                    if (about.versionLoading) R.string.about_version_loading else R.string.about_version_unknown,
-                ),
-            )
-            Button(
-                onClick = onUpdate,
-                enabled = about.check != EngineCheck.Checking,
-                shape = CircleShape,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp),
-            ) {
-                Text(stringResource(R.string.about_update))
-            }
-            checkText(about.check)?.let { text ->
-                Text(
-                    text = text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
         }
     }
 }

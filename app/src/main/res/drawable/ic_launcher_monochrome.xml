@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Themed-icon layer: the mascot's silhouette with its eyes and smile cut out. The system
+     tints it, so only the alpha matters. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.68"
+        android:scaleY="0.68"
+        android:translateX="20"
+        android:translateY="21.02">
+        <path
+            android:pathData="M50,5L50,18.5M43.5,12L50,18.5L56.5,12"
+            android:strokeWidth="5.5"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M50,24C74,24 90,40 90,62C90,82 74,92 50,92C26,92 10,82 10,62C10,40 26,24 50,24ZM33,56a5,5 0,1 0,10 0a5,5 0,1 0,-10 0ZM57,56a5,5 0,1 0,10 0a5,5 0,1 0,-10 0ZM44,65Q50,73 56,65Q50,68.5 44,65Z" />
+    </group>
+</vector>

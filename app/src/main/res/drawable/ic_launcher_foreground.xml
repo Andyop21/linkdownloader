@@ -1,14 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Placeholder launcher foreground: a download arrow over a tray. P06 replaces it. -->
+<!-- Launcher foreground: the mascot (same shapes as ui/Mascot.kt, idle face) inside the
+     adaptive icon's 66 dp safe zone, on the lavender background from colors.xml. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M50,34h8v22l8,-8 5.6,5.6L54,71.2 36.4,53.6 42,48l8,8z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M36,70h36v6H36z" />
+    <group
+        android:scaleX="0.68"
+        android:scaleY="0.68"
+        android:translateX="20"
+        android:translateY="21.02">
+        <!-- Download arrow on the head -->
+        <path
+            android:pathData="M50,5L50,18.5M43.5,12L50,18.5L56.5,12"
+            android:strokeWidth="5.5"
+            android:strokeColor="#FFFFFF"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
+        <!-- Body -->
+        <path
+            android:fillColor="#F3F0FF"
+            android:pathData="M50,24C74,24 90,40 90,62C90,82 74,92 50,92C26,92 10,82 10,62C10,40 26,24 50,24Z" />
+        <!-- Shine -->
+        <path
+            android:fillAlpha="0.8"
+            android:fillColor="#FFFFFF"
+            android:pathData="M24,36.5a6,3.5 0,1 0,12 0a6,3.5 0,1 0,-12 0Z" />
+        <!-- Cheeks -->
+        <path
+            android:fillAlpha="0.8"
+            android:fillColor="#FF9E8A"
+            android:pathData="M21.5,65a5.5,3 0,1 0,11 0a5.5,3 0,1 0,-11 0ZM67.5,65a5.5,3 0,1 0,11 0a5.5,3 0,1 0,-11 0Z" />
+        <!-- Eyes -->
+        <path
+            android:fillColor="#2E2A3B"
+            android:pathData="M33,56a5,5 0,1 0,10 0a5,5 0,1 0,-10 0ZM57,56a5,5 0,1 0,10 0a5,5 0,1 0,-10 0Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M38,54.3a1.7,1.7 0,1 0,3.4 0a1.7,1.7 0,1 0,-3.4 0ZM62,54.3a1.7,1.7 0,1 0,3.4 0a1.7,1.7 0,1 0,-3.4 0Z" />
+        <!-- Smile -->
+        <path
+            android:pathData="M45,66Q50,71 55,66"
+            android:strokeWidth="3.2"
+            android:strokeColor="#2E2A3B"
+            android:strokeLineCap="round" />
+    </group>
 </vector>

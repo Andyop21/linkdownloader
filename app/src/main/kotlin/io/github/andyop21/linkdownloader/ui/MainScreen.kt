@@ -4,22 +4,27 @@ import android.content.ActivityNotFoundException
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,13 +42,18 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
+import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import io.github.andyop21.linkdownloader.R
 import io.github.andyop21.linkdownloader.download.DownloadResult
+import io.github.andyop21.linkdownloader.download.FailureReason
+import io.github.andyop21.linkdownloader.download.VideoChoice
 import io.github.andyop21.linkdownloader.ui.theme.LinkDownloaderTheme
-import kotlinx.coroutines.launch
+import io.github.andyop21.linkdownloader.ui.theme.SheetShape
 import java.util.UUID
+import kotlinx.coroutines.launch
 
 /**
  * The app's one screen (docs/product.md § The screen), driven by [viewModel]. This function only
@@ -116,8 +126,9 @@ class MainActions(
 
 /**
  * The screen for [state], top to bottom: header, bar, Paste, status card; plus the choice and
- * About sheets when open. The column is at most 560 dp wide and scrolls when it does not fit
- * (small phones, landscape, the largest font).
+ * About sheets when open. The content sits a little above the middle, is at most 560 dp wide and
+ * scrolls when it does not fit (small phones, landscape, the largest font, the keyboard open). It
+ * stays clear of the system bars and the keyboard.
  */
 @Composable
 fun MainContent(
@@ -130,38 +141,52 @@ fun MainContent(
     val status = state.status
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .consumeWindowInsets(padding)
-                .imePadding()
-                .verticalScroll(rememberScrollState()),
-            contentAlignment = Alignment.TopCenter,
+                .imePadding(),
         ) {
+            val viewport = maxHeight
             Column(
                 modifier = Modifier
-                    .widthIn(max = 560.dp)
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                HeaderWithMascot(mood = status.mood, onLongPress = actions.onOpenAbout)
-                LinkBar(
-                    text = state.bar,
-                    enabled = !status.isRunning,
-                    onTextChange = actions.onBarChanged,
-                    onGo = actions.onGo,
-                )
-                PasteButton(enabled = !status.isRunning, onClick = actions.onPaste)
-                StatusCard(
-                    status = status,
-                    onCancel = actions.onCancel,
-                    onOpen = { (status as? Status.Done)?.videos?.firstOrNull()?.let { actions.onOpen(it.uri) } },
-                )
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 560.dp)
+                        .fillMaxWidth()
+                        .heightIn(min = viewport)
+                        .padding(horizontal = 24.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    Spacer(Modifier.weight(ABOVE))
+                    HeaderWithMascot(
+                        mood = status.mood,
+                        onLongPress = actions.onOpenAbout,
+                        progress = status.mascotProgress,
+                    )
+                    LinkBar(
+                        text = state.bar,
+                        enabled = !status.isRunning,
+                        onTextChange = actions.onBarChanged,
+                        onGo = actions.onGo,
+                    )
+                    PasteButton(enabled = !status.isRunning, onClick = actions.onPaste)
+                    StatusCard(
+                        status = status,
+                        onCancel = actions.onCancel,
+                        onOpen = { (status as? Status.Done)?.videos?.firstOrNull()?.let { actions.onOpen(it.uri) } },
+                    )
+                    Spacer(Modifier.weight(BELOW))
+                }
             }
         }
     }
@@ -183,6 +208,10 @@ fun MainContent(
         )
     }
 }
+
+/** Free space above and below the content: a little less above, so it sits above the middle. */
+private const val ABOVE = 2f
+private const val BELOW = 3f
 
 /** The clipboard's first item as text, or null when it is empty. Read only when Paste is tapped. */
 private fun readClipboard(context: Context): String? {
@@ -206,44 +235,63 @@ private fun openVideo(context: Context, uri: String): Boolean {
     }
 }
 
-@Preview(showBackground = true, name = "Idle")
+/** Every state the screen can show, for the previews below. */
+private class UiStatePreviews : PreviewParameterProvider<UiState> {
+    override val values = sequenceOf(
+        UiState(),
+        UiState(status = Status.NoLink(fromClipboard = true)),
+        UiState(bar = "example", status = Status.NoLink(fromClipboard = false)),
+        UiState(bar = PREVIEW_LINK, status = Status.Preparing),
+        UiState(bar = PREVIEW_LINK, status = Status.Choosing("A post with three clips", PreviewChoices)),
+        UiState(bar = PREVIEW_LINK, status = Status.Downloading(null, 1, 1, null)),
+        UiState(bar = PREVIEW_LINK, status = Status.Downloading("A short clip", 2, 3, 0.42f)),
+        UiState(bar = PREVIEW_LINK, status = Status.Saving("A short clip", 1, 1, 0.97f)),
+        UiState(bar = PREVIEW_LINK, status = Status.Done(UUID(0, 1), listOf(PreviewClip), saved = 1, failed = 0)),
+        UiState(bar = PREVIEW_LINK, status = Status.Done(UUID(0, 2), listOf(PreviewClip, PreviewClip), saved = 2, failed = 1)),
+        UiState(bar = PREVIEW_LINK, status = Status.Failed(FailureReason.NoInternet)),
+        UiState(about = AboutState(open = true, engineVersion = "2026.10.26", check = EngineCheck.UpToDate)),
+    )
+}
+
+private const val PREVIEW_LINK = "https://example.com/v/1"
+private val PreviewClip = DownloadResult.Video("content://media/1", "A short clip.mp4", "A short clip")
+private val PreviewChoices = listOf(
+    VideoChoice(1, "First clip", null, 8.0),
+    VideoChoice(2, "Second clip", null, 21.0),
+    VideoChoice(3, "Third clip", null, 64.0),
+)
+
+@Preview(name = "Light", showBackground = true, heightDp = 780)
+@Preview(name = "Dark", showBackground = true, heightDp = 780, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun IdlePreview() {
-    LinkDownloaderTheme {
-        MainContent(UiState(), "0.1.0", remember { SnackbarHostState() }, MainActions())
+private fun MainContentPreview(@PreviewParameter(UiStatePreviews::class) state: UiState) {
+    LinkDownloaderTheme(reducedMotion = true) {
+        MainContent(state, "0.1.0", remember { SnackbarHostState() }, MainActions())
     }
 }
 
-@Preview(showBackground = true, name = "Downloading")
+@Preview(name = "Choice sheet, light", showBackground = true)
+@Preview(name = "Choice sheet, dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun DownloadingPreview() {
-    LinkDownloaderTheme {
-        MainContent(
-            UiState(bar = "https://example.com/v/1", status = Status.Downloading("A short clip", 2, 3, 0.42f)),
-            "0.1.0",
-            remember { SnackbarHostState() },
-            MainActions(),
-        )
+private fun ChoiceSheetPreview() {
+    LinkDownloaderTheme(reducedMotion = true) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = SheetShape) {
+            ChoiceSheetContent(title = "A post with three clips", choices = PreviewChoices, onDownload = {})
+        }
     }
 }
 
-@Preview(showBackground = true, name = "Done")
+@Preview(name = "About sheet, light", showBackground = true)
+@Preview(name = "About sheet, dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-private fun DonePreview() {
-    LinkDownloaderTheme {
-        MainContent(
-            UiState(
-                bar = "https://example.com/v/1",
-                status = Status.Done(
-                    UUID(0, 1),
-                    listOf(DownloadResult.Video("content://media/1", "A short clip.mp4", "A short clip")),
-                    saved = 1,
-                    failed = 0,
-                ),
-            ),
-            "0.1.0",
-            remember { SnackbarHostState() },
-            MainActions(),
-        )
+private fun AboutSheetPreview() {
+    LinkDownloaderTheme(reducedMotion = true) {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerLow, shape = SheetShape) {
+            AboutSheetContent(
+                appVersion = "0.1.0",
+                about = AboutState(open = true, engineVersion = "2026.10.26", check = EngineCheck.UpToDate),
+                onUpdate = {},
+            )
+        }
     }
 }

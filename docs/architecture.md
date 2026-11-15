@@ -41,8 +41,8 @@ One Gradle module, `app`. Packages under `io.github.andyop21.linkdownloader`:
 | Package | Holds |
 |---|---|
 | (root) | `LinkDownloaderApp` (initialises youtubedl-android once, creates the notification channel, schedules the yt-dlp update) and `MainActivity` |
-| `ui` | `MainScreen` and its components (`HeaderWithMascot`, `LinkBar`, `PasteButton`, `StatusCard`), `MainViewModel`, `UiState`, `Downloads` (the ViewModel's view of the download side), the placeholder mascot, the choice sheet with its thumbnail loader, the About sheet and the one-time notification permission request |
-| `ui.theme` | Colours, type, shapes and motion |
+| `ui` | `MainScreen` and its components (`HeaderWithMascot`, `LinkBar`, `PasteButton`, `StatusCard`), `MainViewModel`, `UiState`, `Downloads` (the ViewModel's view of the download side), the `Mascot`, the line icons, the choice sheet with its thumbnail loader, the About sheet and the one-time notification permission request |
+| `ui.theme` | Colours (both schemes, the status card tones, the mascot's colours), Nunito type, shapes, motion and reduced motion, `LinkDownloaderTheme` |
 | `link` | `LinkParser`: finds the first `http`/`https` link in a piece of text. Pure Kotlin. |
 | `download` | The download pipeline (below), `DownloadWorker`, `UpdateWorker`, the notifications and `DownloadQueue` (§ *Background work*) |
 
@@ -176,8 +176,12 @@ count as running. The screen only renders `UiState` and passes taps back as call
   and shows a snackbar when no app can play the video; a `Confirm` haptic plays once per finished
   job (also across rotations); `POST_NOTIFICATIONS` is asked once (§ *Permissions*).
 - **Components** (`HeaderWithMascot`, `LinkBar`, `PasteButton`, `StatusCard`, `ChoiceSheet`,
-  `AboutSheet`) take state and callbacks and hold no logic, so P06 only restyles them. The column
-  is at most 560 dp wide and scrolls, so small phones, landscape and the largest font all fit.
+  `AboutSheet`) take state and callbacks and hold no logic. Each sheet's content
+  (`ChoiceSheetContent`, `AboutSheetContent`) is separate from its `ModalBottomSheet`, so it can be
+  previewed. The column is at most 560 dp wide and scrolls, so small phones, landscape, the
+  largest font and the open keyboard all fit; it pads for the system bars and the keyboard
+  (`safeDrawing` insets, `imePadding`, `adjustResize`). `MainScreen.kt` has `@Preview`s of every
+  `UiState` and both sheets, in light and dark (motion off, so they are still).
 - **Choice sheet** (B11, DEC-005): a modal bottom sheet with an adaptive grid of thumbnails, all
   selected at first. Thumbnails are fetched with `HttpURLConnection` on `Dispatchers.IO`, decoded
   with `BitmapFactory` at a power-of-two reduction close to 360 px, and kept in memory for the
@@ -263,29 +267,69 @@ WorkManager's `SystemForegroundService` is merged into the manifest with
 
 ## Look and feel
 
-Implemented in `ui.theme`; tokens, not inline values.
+Implemented in `ui.theme`; tokens, not inline values. Why some values are as they are:
+[DEC-007](work/decisions/DEC-007-look-and-feel-tokens.md).
 
 | Token | Light | Dark |
 |---|---|---|
 | background | `#FFF8F3` cream | `#1B1825` |
+| onBackground | `#2E2A3B` | `#EDE9F7` |
 | surface | `#FFFFFF` | `#252134` |
-| primary (lavender) | `#7C6CF2` | `#B9AEFF` |
+| onSurface | `#2E2A3B` | `#EDE9F7` |
+| onSurfaceVariant | `#5E586B` | `#C9C2D8` |
+| surfaceContainerLow (sheets) | `#FFFBF8` | `#211D2E` |
+| surfaceContainerHighest (the bar) | `#F1E7E1` | `#3A344C` |
+| outlineVariant (idle card edge) | `#E3DCE6` | `#48425A` |
+| primary (lavender) | `#6352D9` | `#B9AEFF` |
+| onPrimary | `#FFFFFF` | `#2A1F6B` |
 | primaryContainer | `#E9E5FF` | `#3D3370` |
+| onPrimaryContainer | `#2A1F6B` | `#E6E0FF` |
 | secondary (peach) | `#FF9E8A` | `#FFB8A8` |
 | tertiary (mint, success) | `#3FAE93` | `#8EE3CB` |
-| error (soft red) | `#D9534A` | `#FF8A80` |
-| onBackground | `#2E2A3B` | `#EDE9F7` |
+| onTertiary | `#00382C` | `#00382C` |
+| tertiaryContainer | `#D5F3EA` | `#1E4A3F` |
+| onTertiaryContainer | `#0F4A3C` | `#BFF5E4` |
+| error (soft red) | `#C4433B` | `#FF8A80` |
+| errorContainer | `#FFE1DE` | `#5A2425` |
+| onErrorContainer | `#6B1712` | `#FFDAD6` |
+| inverseSurface / inverseOnSurface (snackbar) | `#322E3E` / `#F6F1FA` | `#EDE9F7` / `#322E3E` |
 
-These are starting values; any colour may move to pass WCAG AA contrast, and the final values are
-recorded here. Dynamic colour is off: the app keeps its own palette.
+The rest of the Material 3 slots are filled in `ui/theme/Color.kt`. Every text/background pair the
+screen draws passes WCAG AA (4.5:1 for text, 3:1 for icons, the progress bar and the mascot's face)
+in both themes; `ThemeContrastTest` checks the list. Disabled controls are exempt, as in WCAG.
+Dynamic colour is off: the app keeps its own palette.
 
-- **Type:** Nunito (SIL Open Font License), bundled in `res/font`, weights 400, 600 and 800.
-- **Shapes:** the bar and the Paste button are pills; the status card has 24 dp corners.
-- **Motion:** short and soft (spring or 200–300 ms ease). All motion is skipped when the system
-  animator duration scale is 0.
-- **Mascot:** a round blob with a little download-arrow, drawn as a Compose vector; moods idle,
-  working, happy and worried.
-- **Icon:** adaptive launcher icon from the mascot, with a monochrome layer for themed icons.
+- **Status card tones** (`cardColors`): neutral (surface with an outlineVariant edge) while idle,
+  with no link or while choosing; lavender (primaryContainer) while preparing, downloading and
+  saving; mint (tertiaryContainer) when done; soft red (errorContainer) on failure. The tint and
+  the text colours cross-fade, and the card's height changes with the spring.
+- **Type:** Nunito (SIL Open Font License), the variable font from Google Fonts bundled as
+  `res/font/nunito.ttf` and used at weights 400, 600 and 800 (`FontVariation.weight`); licence in
+  `assets/licenses/OFL-Nunito.txt`. Headings and titles 800, labels 600, body 400.
+- **Shapes** (`ui/theme/Shape.kt`): `PillShape` for the bar and every button, `CardShape` 24 dp for
+  the status card, `SheetShape` 32 dp top corners for both sheets, `TileShape` 16 dp for thumbnails.
+- **Motion** (`ui/theme/Motion.kt`): one spring (`Motion.spring`, damping 0.6, medium-low
+  stiffness) and one 250 ms ease (`Motion.tween`), used everywhere through `springSpec()` and
+  `tweenSpec()`. `rememberReducedMotion()` reads the system animator duration scale and follows
+  changes; the theme provides it as `LocalReducedMotion`, and when it is 0 every transition snaps,
+  the mascot stands still and the indeterminate progress bar is a still track.
+- **Screen:** the content sits a little above the middle (free space split 2:3), with the mascot
+  (104 dp) and the app name in Nunito ExtraBold centred above a filled pill bar (link icon, "Video
+  link" label, lavender ring when focused), a 76 dp lavender **Paste** pill with a clipboard icon
+  that shrinks to 95 % when pressed, and the status card. The progress bar is 10 dp, rounded,
+  on a pill track, and glides between updates with the 250 ms ease.
+- **Mascot** (`ui/Mascot.kt`): a lavender mochi-shaped blob with a download-arrow on its head,
+  blush and a face, drawn with `Canvas` in a 100-unit space. Idle: breathes (2.4 s). Working: a
+  "o" mouth, bobs (0.45 s) with the arrow pushing down, and fills from the bottom with the
+  download's progress. Happy: closed "^ ^" eyes and an open smile, one hop and three sparkles
+  that stay. Worried: raised brows, a small frown, a sweat drop and one wobble. Each mood has a
+  content description ("Mascot, cheering"). Its colours are `AppTheme.mascot`.
+- **Icon:** adaptive launcher icon with the idle mascot on lavender `#7C6CF2`
+  (`drawable/ic_launcher_foreground.xml`), a monochrome layer for themed icons
+  (`ic_launcher_monochrome.xml`: the silhouette with eyes and smile cut out) and the same
+  silhouette as the white notification icon (`ic_stat_download.xml`).
+- **Line icons** (`ui/Icons.kt`): the clipboard and link icons are drawn as stroked paths; no icon
+  library.
 
 ## Dependencies
 
@@ -300,8 +344,8 @@ decision in `work/decisions/`.
 - **JVM unit tests:** `LinkParser`, `VideoJson`, `FormatPicker`, `FailureClassifier`, `FileNamer`,
   `ProgressTracker`, `Container`, `DownloadProgress`, `throttleLatest` (in virtual time),
   `EngineUpdateRule`, `DownloadData`, `UpdateWorker`'s output, `ChoicesFile`, the choice sheet's
-  `durationText` and `MainViewModel` (every behaviour row that is not pure UI, against a fake
-  `Downloads`). No network. `FormatPicker`
+  `durationText`, `MainViewModel` (every behaviour row that is not pure UI, against a fake
+  `Downloads`) and the theme's contrast (`ThemeContrastTest`). No network. `FormatPicker`
   runs against trimmed format lists per site in `app/src/test/resources/formats/` (format fields
   only: neutral IDs and titles, no URLs).
 - **Engine probe:** an instrumented test, `EngineProbeTest`, that runs real extractions and

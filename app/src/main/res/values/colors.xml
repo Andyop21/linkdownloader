@@ -2,6 +2,6 @@
 <resources>
     <!-- Window background before Compose draws; matches the theme's background token. -->
     <color name="window_background">#FFF8F3</color>
-    <!-- Placeholder launcher icon; P06 replaces it with the mascot. -->
+    <!-- The adaptive launcher icon's lavender background, behind the mascot. -->
     <color name="ic_launcher_background">#7C6CF2</color>
 </resources>

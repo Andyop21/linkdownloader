@@ -28,6 +28,10 @@
     <string name="bar_label">Video link</string>
     <string name="bar_placeholder">https://…</string>
     <string name="paste">Paste</string>
+    <string name="mascot_idle">Mascot, relaxed</string>
+    <string name="mascot_working">Mascot, busy downloading</string>
+    <string name="mascot_happy">Mascot, cheering</string>
+    <string name="mascot_worried">Mascot, worried</string>
 
     <!-- Status card -->
     <string name="status_idle_title">Ready when you are</string>
