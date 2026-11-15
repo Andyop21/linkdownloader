@@ -20,6 +20,7 @@ None.
 | ID | Title |
 |---|---|
 | [BUG-001](bugs/BUG-001-finish-prompt-rewrites-examples.md) | `finish-prompt.sh` rewrites the example lines that name the finished prompt |
+| [BUG-002](bugs/BUG-002-next-link-replaced-by-post-link.md) | After a post's choice sheet, every new link downloads that post instead |
 
 ## Decisions
 

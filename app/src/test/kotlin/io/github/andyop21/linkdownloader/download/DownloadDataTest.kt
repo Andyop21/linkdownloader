@@ -1,6 +1,7 @@
 package io.github.andyop21.linkdownloader.download
 
 import androidx.work.Data
+import androidx.work.OverwritingInputMerger
 import io.github.andyop21.linkdownloader.download.DownloadData.clipped
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -18,6 +19,31 @@ class DownloadDataTest {
         val chosen = DownloadData.input("https://example.com/p/2", listOf(0, 2))
         assertEquals(listOf(0, 2), DownloadData.selectionOf(chosen))
         assertNull(DownloadData.selectionOf(DownloadData.input("https://example.com/p/2", emptyList())))
+    }
+
+    /**
+     * A job appended to the `engine` chain gets its input merged with the output of the job before
+     * it, that output winning on equal keys (WorkManager's default [OverwritingInputMerger]). The
+     * link and selection must survive every output a download or an update can leave behind.
+     */
+    @Test
+    fun `input survives being merged with the previous job's output`() {
+        val input = DownloadData.input("https://example.com/v/new", listOf(1))
+        val previousOutputs = listOf(
+            DownloadData.choose("https://example.com/p/old", "Old post", "/cache/choices/old.json"),
+            DownloadData.saved(listOf(DownloadResult.Video("content://media/1", "Old.mp4", "Old")), failed = 0),
+            DownloadData.failed(FailureReason.NotSupported),
+            DownloadData.progress(DownloadProgress(DownloadStage.Downloading, "Old", 2, 2, 0.5)),
+            UpdateWorker.output(EngineUpdateResult.Updated("2026.11.01")),
+            UpdateWorker.output(EngineUpdateResult.NotChecked),
+        )
+        previousOutputs.forEach { previous ->
+            val merged = OverwritingInputMerger().merge(listOf(input, previous))
+            assertEquals("after $previous", "https://example.com/v/new", DownloadData.linkOf(merged))
+            assertEquals("after $previous", listOf(1), DownloadData.selectionOf(merged))
+        }
+        val plain = OverwritingInputMerger().merge(listOf(DownloadData.input("https://example.com/v/new"), previousOutputs.first()))
+        assertNull(DownloadData.selectionOf(plain))
     }
 
     @Test

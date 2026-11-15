@@ -37,8 +37,16 @@ object DownloadData {
     /** Titles are cut to this many characters in progress and output data, to stay far below 10 KB. */
     const val MAX_TITLE_CHARS = 200
 
+    /*
+     * Input keys must differ from every output key, of a download or an update. A job appended to
+     * the `engine` chain gets its input merged with the output of the job before it, and WorkManager's
+     * OverwritingInputMerger lets that output win: with a shared key, a post's "choose" output
+     * replaced the next job's link with the post's own (BUG-002).
+     */
+    private const val KEY_INPUT_LINK = "input_link"
+    private const val KEY_INPUT_SELECTION = "input_selection"
+
     private const val KEY_LINK = "link"
-    private const val KEY_SELECTION = "selection"
 
     private const val KEY_STAGE = "stage"
     private const val KEY_TITLE = "title"
@@ -61,13 +69,13 @@ object DownloadData {
 
     /** The input of a download of [link]; [selection] holds the chosen positions of a post with several videos. */
     fun input(link: String, selection: List<Int>? = null): Data = Data.Builder()
-        .putString(KEY_LINK, link)
-        .apply { if (!selection.isNullOrEmpty()) putIntArray(KEY_SELECTION, selection.toIntArray()) }
+        .putString(KEY_INPUT_LINK, link)
+        .apply { if (!selection.isNullOrEmpty()) putIntArray(KEY_INPUT_SELECTION, selection.toIntArray()) }
         .build()
 
-    fun linkOf(input: Data): String? = input.getString(KEY_LINK)?.takeIf { it.isNotBlank() }
+    fun linkOf(input: Data): String? = input.getString(KEY_INPUT_LINK)?.takeIf { it.isNotBlank() }
 
-    fun selectionOf(input: Data): List<Int>? = input.getIntArray(KEY_SELECTION)?.toList()?.takeIf { it.isNotEmpty() }
+    fun selectionOf(input: Data): List<Int>? = input.getIntArray(KEY_INPUT_SELECTION)?.toList()?.takeIf { it.isNotEmpty() }
 
     fun progress(progress: DownloadProgress): Data = Data.Builder()
         .putString(KEY_STAGE, progress.stage.name)

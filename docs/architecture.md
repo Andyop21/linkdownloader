@@ -242,7 +242,10 @@ Why: [DEC-006](work/decisions/DEC-006-workmanager-background-downloads.md).
   `Choose` with the link, the post's title and the choices file, or `Failed` with the
   `FailureReason`).
   Titles are cut to 200 characters. `Data` is capped at 10 KB: should a post's saved list not fit,
-  its last videos are left out of the list but still counted.
+  its last videos are left out of the list but still counted. Input keys (`input_link`,
+  `input_selection`) share no name with any output key: on the `engine` chain WorkManager merges
+  the previous job's output into the next job's input, and the output wins on equal keys
+  ([BUG-002](work/bugs/BUG-002-next-link-replaced-by-post-link.md)).
 - **DownloadWorker** (`CoroutineWorker`) calls `setForeground` at once, with a `dataSync`
   foreground service type and the ongoing notification; if Android refuses (the work started while
   the app was in the background), it goes on as ordinary work. It folds `VideoDownloader`'s events
