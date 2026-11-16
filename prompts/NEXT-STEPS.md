@@ -25,4 +25,4 @@ Finished: P05, P06.
 
 ### Stage 4 — Ship
 
-- [P07](not-finished/P07-release.md): signed release APK, full test pass on the phone, public-ready docs. Entry: P06. Needs the owner's keystore and license choice.
+Finished: P07.
