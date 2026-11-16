@@ -4,17 +4,17 @@ Date: 2026-11-15 · Prompt: [P02](../../../prompts/finished/P02-engine-probe.md)
 
 ## What changed
 
-1. **Dependency and packaging** (`04fbb10`). `io.github.junkfood02.youtubedl-android:library`
+1. **Dependency and packaging** (`7f97029`). `io.github.junkfood02.youtubedl-android:library`
    0.18.1 in the version catalog; 0.18.1 is still the newest on Maven Central, so there was no
    newer release to weigh. `packaging.jniLibs.useLegacyPackaging = true`, `INTERNET` and
    `ACCESS_NETWORK_STATE`. **Deviation:** `android:extractNativeLibs="true"` is not in the source
    manifest. AGP 9.5 warns when it is there ("should not be specified in this source
    AndroidManifest.xml") and writes `extractNativeLibs=true` into the packaged manifest from
    `useLegacyPackaging` anyway; the debug APK's manifest was checked with `aapt2 dump xmltree`.
-2. **Initialisation** (`04fbb10`). `LinkDownloaderApp.onCreate` starts a thread that calls
+2. **Initialisation** (`7f97029`). `LinkDownloaderApp.onCreate` starts a thread that calls
    `YoutubeDL.getInstance().init(this)` and logs the time or the failure under `LinkDownloaderApp`;
    it never crashes the app.
-3. **`EngineProbeTest`** (`04fbb10`, refined in `79372f3`) in `app/src/androidTest/kotlin/…`, with
+3. **`EngineProbeTest`** (`7f97029`, refined in `870b55f`) in `app/src/androidTest/kotlin/…`, with
    `androidx.test` runner 1.7.0 and ext-junit 1.3.0. Does everything the prompt lists. Additions the
    runs called for:
    - fetches with `--fixup never`;
@@ -25,7 +25,7 @@ Date: 2026-11-15 · Prompt: [P02](../../../prompts/finished/P02-engine-probe.md)
    - opens each file with `MediaExtractor` and offers each track to `MediaMuxer`;
    - logs width, `format_note` and language fields per format;
    - `update=false` skips the update and the second pass.
-4. **DEC-003** (`79372f3`). Results per site, the yt-dlp options that worked, the failures and their
+4. **DEC-003** (`870b55f`). Results per site, the yt-dlp options that worked, the failures and their
    causes, page size, APK size, and the picker rules for P03. Its row is in `docs/work/README.md`.
 
 ## How it was checked

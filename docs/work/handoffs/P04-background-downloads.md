@@ -4,7 +4,7 @@ Date: 2026-11-15 · Prompt: [P04](../../../prompts/finished/P04-background-downl
 
 ## What changed
 
-All in `700e520`:
+All in `203768b`:
 
 1. **WorkManager** `work-runtime` 2.12.0 in the catalog (its coroutine and `Flow` APIs need no
    `-ktx`), default initialisation; kotlinx-coroutines-test for JVM tests. Recorded in

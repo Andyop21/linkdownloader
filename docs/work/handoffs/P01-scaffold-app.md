@@ -4,7 +4,7 @@ Date: 2026-11-15 · Prompt: [P01](../../../prompts/finished/P01-scaffold-app.md)
 
 ## What changed
 
-All in `24c7b0e build(app): scaffold the Android project with Compose`.
+All in `2ad9b04 build(app): scaffold the Android project with Compose`.
 
 1. **Gradle wrapper and build files.** Gradle 9.9.1 wrapper (bin distribution, pinned SHA-256),
    `gradle-wrapper.jar` committed. `settings.gradle.kts` (repositories, foojay toolchain resolver,

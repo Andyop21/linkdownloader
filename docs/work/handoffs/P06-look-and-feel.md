@@ -4,7 +4,7 @@ Date: 2026-11-15 · Prompt: [P06](../../../prompts/finished/P06-look-and-feel.md
 
 ## What changed
 
-All in `d5109ac`:
+All in `5cb84f6`:
 
 1. **Theme tokens** (`ui.theme`):
    - `Color.kt`: full Material 3 light and dark schemes, the status card tones (`StatusTone`,

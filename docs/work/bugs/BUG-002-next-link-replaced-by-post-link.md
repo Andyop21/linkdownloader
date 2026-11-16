@@ -3,7 +3,7 @@ id: BUG-002
 title: After a post's choice sheet, every new link downloads that post instead
 status: fixed
 found: 2026-11-16
-fixed-by: 5c78ce3
+fixed-by: 5f5265f
 ---
 
 # BUG-002 — After a post's choice sheet, every new link downloads that post instead

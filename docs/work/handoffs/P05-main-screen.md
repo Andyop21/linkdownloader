@@ -4,7 +4,7 @@ Date: 2026-11-15 · Prompt: [P05](../../../prompts/finished/P05-main-screen.md)
 
 ## What changed
 
-All in `31651c9`:
+All in `268e1d0`:
 
 1. **`LinkParser`** (`link`, pure Kotlin): `firstLink(text)` finds the first `http`/`https` URL,
    stops at whitespace, quotes and angle brackets, drops trailing sentence punctuation and closing

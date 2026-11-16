@@ -4,35 +4,35 @@ Date: 2026-11-15 · Prompt: [P03](../../../prompts/finished/P03-download-pipelin
 
 ## What changed
 
-1. **Build** (`44f9262`). kotlinx-serialization-json 1.13.0 and the serialization compiler plugin,
+1. **Build** (`4f37c6f`). kotlinx-serialization-json 1.13.0 and the serialization compiler plugin,
    kotlinx-coroutines-android (catalog version 1.11.0) as a direct dependency, JUnit for JVM tests.
    Recorded in [DEC-004](../decisions/DEC-004-serialization-and-coroutines.md).
-2. **`VideoJson`** (`44f9262`): the fields the pipeline reads, plus `width` and
+2. **`VideoJson`** (`4f37c6f`): the fields the pipeline reads, plus `width` and
    `language_preference`, which the DEC-003 rules need. Numbers are `Double?`; unknown keys ignored.
-3. **`FormatPicker`** (`44f9262`): DEC-003's rules. `pick` returns `Plan.Single` or `Plan.Pair` and
+3. **`FormatPicker`** (`4f37c6f`): DEC-003's rules. `pick` returns `Plan.Single` or `Plan.Pair` and
    throws `DownloadException(NotSupported)` when nothing is usable. 27 tests, against trimmed
    per-site samples in `app/src/test/resources/formats/` and small inline cases.
-4. **`FailureClassifier`** (`44f9262`): reads only `ERROR:` lines when there are any; strong
+4. **`FailureClassifier`** (`4f37c6f`): reads only `ERROR:` lines when there are any; strong
    "unavailable" signs before login, so "Private video. Sign in…" and "Sign in to confirm your age"
    are *unavailable* while "Sign in to confirm you're not a bot" is *needs login*. 15 tests with the
    P02 messages and yt-dlp's usual ones.
-5. **`FileNamer`** (`44f9262`): 100 code points and 200 UTF-8 bytes at most, emoji kept, no
+5. **`FileNamer`** (`4f37c6f`): 100 code points and 200 UTF-8 bytes at most, emoji kept, no
    dangling zero-width joiner, `<site>-<id>` then `video` as fallbacks. 11 tests.
-6. **`ProgressTracker`** (`44f9262`): fetch 0–95 % weighted by size or evenly, assemble 95–99 %,
+6. **`ProgressTracker`** (`4f37c6f`): fetch 0–95 % weighted by size or evenly, assemble 95–99 %,
    published 100 %. It reads percentages from the lines, because the library's callback repeats the
    last percentage on lines without one. 13 tests.
-7. **`Container`** (`44f9262`, not in the prompt's list): container sniffing as a pure class, so the
+7. **`Container`** (`4f37c6f`, not in the prompt's list): container sniffing as a pure class, so the
    "decide by first bytes" rule is unit-tested. 7 tests.
-8. **`YtDlp`** (`bd80bab`): `extract` and `fetch` with `--fixup never`, `--no-mtime` and the `-o`
+8. **`YtDlp`** (`211699e`): `extract` and `fetch` with `--fixup never`, `--no-mtime` and the `-o`
    template, on `Dispatchers.IO`; coroutine cancellation calls `destroyProcessById`.
-9. **`MediaAssembler`** (`bd80bab`): join and remux with `MediaExtractor` + `MediaMuxer`, written
+9. **`MediaAssembler`** (`211699e`): join and remux with `MediaExtractor` + `MediaMuxer`, written
    straight into the pending MediaStore entry's file descriptor, interleaved by time, rotation kept.
-10. **`DownloadsSaver`** (`bd80bab`): pending entry in `Download/`, publish, delete on any failure
+10. **`DownloadsSaver`** (`211699e`): pending entry in `Download/`, publish, delete on any failure
     or cancel; returns the name MediaStore actually gave.
-11. **`VideoDownloader`** (`bd80bab`): the entry point P04 calls, with the connectivity check, one
+11. **`VideoDownloader`** (`211699e`): the entry point P04 calls, with the connectivity check, one
     re-extract on HTTP 403, progress that never goes backwards across that retry, and an *unknown*
     failure turned into *no internet* when the phone is offline.
-12. **`EngineProbeTest`** (`bd80bab`): `pipeline=true` runs `VideoDownloader` on the links;
+12. **`EngineProbeTest`** (`211699e`): `pipeline=true` runs `VideoDownloader` on the links;
     `keep=true` leaves the videos for a manual check; `cancel=true` cancels the first link during
     the fetch and while saving, and checks for leftovers.
 

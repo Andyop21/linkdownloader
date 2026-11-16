@@ -7,30 +7,30 @@ Date: 2026-11-16 · Prompt: [P07](../../../prompts/finished/P07-release.md)
 1. **Signing.** The release build reads `keystore.properties` (ignored by git) and stops at
    `checkReleaseSigning` with a clear message when the file, a key in it or the keystore is
    missing. The owner created the keystore outside the repository with the documented `keytool`
-   command (`CN=linkdownloader`, no personal name). `a9c35f3`.
+   command (`CN=linkdownloader`, no personal name). `0a4c1ea`.
 2. **Shrinking.** R8 and resource shrinking on, with keep rules for youtubedl-android, Jackson,
-   Commons Compress and the app's serializers (`a9c35f3`), plus class names in `download` and line
-   numbers kept so release logs stay readable (`b757173`).
+   Commons Compress and the app's serializers (`0a4c1ea`), plus class names in `download` and line
+   numbers kept so release logs stay readable (`d21f0ea`).
 3. **Version** `versionCode 100`, `versionName "1.0.0"`; scheme in `docs/development.md`
-   § *Versions*. `a9c35f3`.
+   § *Versions*. `0a4c1ea`.
 4. **Release test pass** on the owner's phone (below).
 5. **Size and start-up** (below).
 6. **Public-ready docs.** `LICENSE` (GPL-3.0-or-later, the owner's choice) and a first public
-   README (`ceb3d5c`); then the docs checked against the code and 13 drifts fixed, the look's
+   README (`8140bbc`); then the docs checked against the code and 13 drifts fixed, the look's
    decision record (DEC-008) rewritten so it names no other project, and `CHANGELOG.md` moved
-   under `[1.0.0] - 2026-11-16` (`f19e380`); the README rewritten in full, with light-mode
-   screenshots taken on the phone and a light/dark comparison (`64d5a01`, `d11749e`).
+   under `[1.0.0] - 2026-11-16` (`159d230`); the README rewritten in full, with light-mode
+   screenshots taken on the phone and a light/dark comparison (`268da2a`, `d2d5e1a`).
 
 Between the first test pass and this one, at the owner's request outside this prompt, the screen
-was redesigned (DEC-008: `7c44707`, `73c1a1c`), the keyboard no longer covers the field
-(`e39f16a`), and BUG-002 was fixed (`5c78ce3`). That is why the pass below was run again on the
+was redesigned (DEC-008: `b40eb00`, `0726c53`), the keyboard no longer covers the field
+(`fc583af`), and BUG-002 was fixed (`5f5265f`). That is why the pass below was run again on the
 final build.
 
 ## How it was checked
 
 - `./gradlew assembleDebug testDebugUnitTest lintDebug assembleRelease` passes (JDK 21).
 - `apksigner verify --print-certs` on `app-release.apk`: verified, signer `CN=linkdownloader`.
-- The signed release APK of `d11749e` was installed with `adb install -r` on the owner's phone
+- The signed release APK of `d2d5e1a` was installed with `adb install -r` on the owner's phone
   (Samsung, Android 17 / API 37, over wireless debugging) and driven through the screen with
   `adb` (typed links and the keyboard's Go key; uiautomator for reading the screen).
 
@@ -95,7 +95,7 @@ notification and the haptic tick were checked by the owner by hand (table above)
 ## Bugs filed
 
 - [BUG-002](../bugs/BUG-002-next-link-replaced-by-post-link.md), found by the owner on the
-  release build and fixed in `5c78ce3`.
+  release build and fixed in `5f5265f`.
 
 ## Open questions
 
