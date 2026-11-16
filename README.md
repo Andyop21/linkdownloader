@@ -157,12 +157,15 @@ in [docs/architecture.md](docs/architecture.md), and the reasons behind each cho
 
 The app is not on Google Play; it is installed from its APK.
 
-1. Get `app-release.apk` from this repository's
-   [Releases](https://github.com/Andyop21/linkdownloader/releases) page when one is published, or
-   build it yourself (below).
+1. Download `LinkDownloader-<version>.apk` from the
+   [latest release](https://github.com/Andyop21/linkdownloader/releases/latest), or build it
+   yourself (below). Each release lists the APK's SHA-256 checksum, so you can check the file.
 2. Open it on the phone. Android asks once to allow installing apps from that source (*Install
-   unknown apps*).
-3. Or, with USB or wireless debugging on: `adb install -r app-release.apk`.
+   unknown apps*). Play Protect may warn that the app is unknown; *More details* → *Install
+   anyway* is expected for an app from outside Google Play.
+3. Or, with USB or wireless debugging on: `adb install -r LinkDownloader-<version>.apk`.
+
+Updates install over the previous version, because every release is signed with the same key.
 
 **Requirements:** Android 10 or newer, on a 64-bit ARM phone (`arm64-v8a`, which covers nearly
 every current phone). The first start unpacks the bundled Python, so the very first download

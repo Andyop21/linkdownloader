@@ -188,6 +188,27 @@ The release build runs R8 (`isMinifyEnabled`, `isShrinkResources`) with the rule
 `100`, 1.2.3 is `10203`). Both are set in `app/build.gradle.kts`. Raise them together for every
 release APK, and move *Unreleased* in `CHANGELOG.md` under the new version.
 
+## Making a release
+
+Only from `master`, after `bash scripts/promote.sh`, and only when the owner asks. In Git Bash
+from the repository root, with `keystore.properties` in place and the GitHub CLI signed in:
+
+```bash
+V=1.0.0                                            # the versionName in app/build.gradle.kts
+git switch master && git pull --ff-only
+./gradlew assembleRelease
+cp app/build/outputs/apk/release/app-release.apk "LinkDownloader-$V.apk"
+sha256sum "LinkDownloader-$V.apk"                  # goes in the release notes
+git tag -a "v$V" -m "Link Downloader $V" && git push origin "v$V"
+gh release create "v$V" "LinkDownloader-$V.apk" --title "Link Downloader $V" --notes-file notes.md
+rm "LinkDownloader-$V.apk" && git switch worktree
+```
+
+`notes.md` (not committed) holds the version's section of `CHANGELOG.md`, the requirements, the
+install steps and the checksum. A release adds only a tag on `master`; nothing is committed
+there. Keep the keystore and its password backed up: a release signed with another key
+cannot be installed over the previous one.
+
 ## Workflow scripts
 
 | Command | Does |
