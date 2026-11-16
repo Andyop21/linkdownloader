@@ -56,6 +56,8 @@ final build.
 | B13 | Clear button | Emptied the field and dismissed the message |
 | Themes | Light and dark | Ready, reading, downloading, saved, already saved, failed and the About sheet checked in both while taking the README screenshots |
 | Reboot | Phone restarted, then the app's first start and a fresh TikTok download | Cold start, saved normally |
+| B5 | **Cancel** in the notification (by the owner, by hand) | The download stopped and no "Saved" notification followed |
+| B6 | Haptic tick on a save with the app open (by the owner, by hand) | Felt |
 
 From the first pass on the pre-redesign build (same pipeline and ViewModel rules), still standing:
 B1 (share text around a link, then Paste: only the link used) and B2 (clipboard without a link:
@@ -78,11 +80,10 @@ started); the owner's own files were not touched. The test links are not recorde
 
 ### Not checked
 
-- **The haptic tick** when a video is saved with the app open: needs a hand on the phone.
-- **Cancel from the notification**: One UI does not expose the notification's action button to
-  `uiautomator`, and on this connection every test download finished before it could be reached
-  by hand-placed taps. Cancel on the screen and the worker's cancel path are covered.
 - TalkBack.
+
+One UI does not expose the notification's action buttons to `uiautomator`, so Cancel from the
+notification and the haptic tick were checked by the owner by hand (table above).
 
 ## Docs updated
 
@@ -98,7 +99,6 @@ started); the owner's own files were not touched. The test links are not recorde
 
 ## Open questions
 
-- Two small checks for the owner: the haptic tick and Cancel from the notification.
 - A few KDoc comments in `ui/theme/Spacing.kt` describe spacing steps the screen no longer uses
   (`Space.xxl`, `Space.xxxl`). Harmless; worth tidying in a later session.
 - An Instagram post that yt-dlp reports as "There is no video in this post" shows *Link not
